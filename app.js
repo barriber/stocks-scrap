@@ -2,7 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const puppeteer = require('puppeteer');
 const modifySpreadsheet = require('./spreadsheet');
-const definition = require('./spreadSheetDefinition.json')
+const definition = require('./spreadSheetDefinition.js')
 
 const regex = /\$stock/g;
 
@@ -20,7 +20,6 @@ const scrap = async (stock, stockDefinition) => {
     const [{data: statistics}, {data: analysis}] = await Promise.all(
         [axios(statisticsUrl.replace(regex, stock)), axios(analysisUrl.replace(regex, stock))])
     stockDefinition.symbol.value = stock;
-    stockDefinition['p/e'].value = getStatisticValue(statistics, 0, 2);
     stockDefinition['Forward p/e'].value = getStatisticValue(statistics, 0, 3);
     stockDefinition['peg'].value = getStatisticValue(statistics, 0, 4);
     stockDefinition['operating cash flow'].value = getStatisticValue(statistics, 9, 0);
@@ -78,6 +77,7 @@ const tipRankAnalysis = async (stock, browser) => {
 }
 
 const app = async (stock) => {
+    console.time('stock')
     const stockDefinition = {...definition}
     const browser = await puppeteer.launch();
     const [, dividend, tipRanks] = await Promise.all([scrap(stock, stockDefinition), getDividend(stock, browser),
@@ -85,6 +85,7 @@ const app = async (stock) => {
     stockDefinition.dividend.value = dividend;
     stockDefinition.tipRanks.value = tipRanks;
     await browser.close();
+    console.timeEnd('stock')
     await modifySpreadsheet(stockDefinition);
 }
 const stocks = process.argv.slice(2);

@@ -15,7 +15,12 @@ const setValues = async (sheet, values) => {
     await sheet.loadCells('A2:Z2');
     values.forEach((field, index) => {
         const cell = sheet.getCell(1, index);
-        cell.value = field.value || 'N/A'
+        if (field.formula) {
+            cell.formula = field.formula(values[0].value)
+        } else {
+            cell.value = field.value || 'N/A'
+        }
+        field.format && field.format(cell);
     })
 }
 
