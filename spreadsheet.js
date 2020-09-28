@@ -17,7 +17,6 @@ const setValues = async (sheet, values) => {
         const cell = sheet.getCell(1, index);
         cell.value = field.value || 'N/A'
     })
-
 }
 
 const modifySpreadsheet = async (stock) => {
@@ -26,8 +25,8 @@ const modifySpreadsheet = async (stock) => {
         client_email: process.env.client_email,
         private_key: process.env.private_key.replace(/\\n/gm, '\n'),
     });
-    await doc.loadInfo();
 
+    await doc.loadInfo();
     const sheet = doc.sheetsByIndex[0];
     const values = Object.values(stock)
     const keys = Object.keys(stock)
