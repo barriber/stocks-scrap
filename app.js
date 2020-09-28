@@ -1,6 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const puppeteer = require('puppeteer');
+const modifySpreadsheet = require('./spreadsheet');
 
 const regex = /\$stock/g;
 // const runHeaders = async () => {
@@ -35,11 +36,16 @@ const scrap = async (stock) => {
     const [{data: statistics}, {data: analysis}] = await Promise.all(
         [axios(statisticsUrl.replace(regex, stock)), axios(analysisUrl.replace(regex, stock))])
     const result = {
-        symbol: stock,
+        symbol: {
+            value: stock
+        },
         'p/e': {
             value: getStatisticValue(statistics, 0, 2),
         },
-        'Forward p/e': getStatisticValue(statistics, 0, 3),
+        'Forward p/e': {
+            value: getStatisticValue(statistics, 0, 3
+            )
+        },
         'peg': {
             value: getStatisticValue(statistics, 0, 4),
             description: 'The price/earnings to growth ratio (PEG ratio) is a stock\'s price-to-earnings (P/E) ratio divided by the growth rate of its earnings for a specified time period. The PEG ratio is used to determine a stock\'s value while also factoring in the company\'s expected earnings growth, and it is thought to provide a more complete picture than the more standard P/E ratio.'
@@ -78,21 +84,29 @@ const scrap = async (stock) => {
             value: getStatisticValue(statistics, 3, 5),
             description: 'The dividend payout ratio is the ratio of the total amount of dividends paid out to shareholders relative to the net income of the company.'
         },
-        yahooAnalysis: {
-            'earnings': {
-                currentYear: getStatisticValue(analysis, 0, 1,3),
-                nextYear: getStatisticValue(analysis, 0, 1,4),
-            },
-            'sales Growth': {
-                currentYear: getStatisticValue(analysis, 1, 5,3),
-                nextYear: getStatisticValue(analysis, 1, 5,4),
-            },
-            'Growth Estimates': {
-                'current Year':  getStatisticValue(analysis, 5, 2,1),
-                'Next Year':  getStatisticValue(analysis, 5, 3,1),
-                'Next 5 Years':  getStatisticValue(analysis, 5, 4,1),
-            }
-        }
+        'earnings current year': {
+            value: getStatisticValue(analysis, 0, 1, 3)
+        },
+
+        'earnings nextYear': {
+            value: getStatisticValue(analysis, 0, 1, 4),
+        },
+        'sales Growth current year': {
+            value: getStatisticValue(analysis, 1, 5, 3),
+
+        },
+        'sales Growth next year': {
+            value: getStatisticValue(analysis, 1, 5, 4),
+        },
+        'Growth Estimates current year': {
+            value: getStatisticValue(analysis, 5, 2, 1),
+        },
+        'Growth Estimates next year': {
+            value: getStatisticValue(analysis, 5, 3, 1),
+        },
+        'Growth Estimates next 5 years': {
+            value: getStatisticValue(analysis, 5, 4, 1),
+        },
     }
     return result;
 }
@@ -106,9 +120,10 @@ const getDividend = async (stock, browser) => {
         await page.waitForFunction(
             'document.querySelector("body").innerText.includes("Dividend Amount")', {timeout: 5000});
         found = true;
-    } catch (e) {}
+    } catch (e) {
+    }
     // await page.screenshot({path: './screenshot.png', fullPage: true});
-    if(!found) {
+    if (!found) {
         return null;
     }
     const content = await page.content();
@@ -124,11 +139,9 @@ const tipRankAnalysis = async (stock, browser) => {
     await page.goto(tipRanks.replace(regex, stock));
     const className = '.client-components-stock-research-analysts-price-target-style__actualMoney';
     try {
-        await page.waitForSelector(className,{timeout: 5000});
-        console.log('FOUND!!!')
-    } catch
-        (e) {
-        console.log('NOT FOUND')
+        await page.waitForSelector(className, {timeout: 5000});
+    } catch (e) {
+        return null;
     }
     const content = await page.content();
     const $ = cheerio.load(content);
@@ -136,19 +149,22 @@ const tipRankAnalysis = async (stock, browser) => {
 }
 
 const app = async (stock) => {
+
     const browser = await puppeteer.launch();
     const [statistics, dividend, tipRanks] = await Promise.all([scrap(stock), getDividend(stock, browser),
         tipRankAnalysis(stock, browser)]);
     const result = {
         ...statistics,
-        dividend,
-        // analysis: {
-        //     tipRanks
-        // }
+        dividend: {
+            value: dividend
+        },
+        tipRanks: {
+            value: tipRanks
+        },
+
     }
     await browser.close();
-
-    console.log(result);
+    await modifySpreadsheet(result);
 }
 const stocks = process.argv.slice(2)
 app(stocks[0])
