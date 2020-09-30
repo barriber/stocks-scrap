@@ -57,7 +57,6 @@ const getDividend = async (stock, browser) => {
     const content = await page.content();
     const $ = cheerio.load(content);
     const values = $('.client-components-StockTabTemplate-InfoBox-InfoBox__bodySingleBoxInfo');
-
     return $(values[1]).children().text();
 }
 
@@ -76,18 +75,23 @@ const tipRankAnalysis = async (stock, browser) => {
     return $(className).children().text();
 }
 
-const app = async (stock) => {
-    console.time('stock')
+const getStockData = async (stock, browser) => {
     const stockDefinition = {...definition}
-    const browser = await puppeteer.launch();
     const [, dividend, tipRanks] = await Promise.all([scrap(stock, stockDefinition), getDividend(stock, browser),
         tipRankAnalysis(stock, browser)]);
     stockDefinition.dividend.value = dividend;
     stockDefinition.tipRanks.value = tipRanks;
+    return stockDefinition;
+}
+const app = async (stocks) => {
+    console.time('stock')
+    const browser = await puppeteer.launch();
+    const stocksDataPromise = stocks.map(stock => getStockData(stock, browser));
+    const stocksData = await Promise.all(stocksDataPromise)
     await browser.close();
     console.timeEnd('stock')
-    await modifySpreadsheet(stockDefinition);
+    await modifySpreadsheet(stocksData[0]);
 }
 const stocks = process.argv.slice(2);
 
-app(stocks[0]);
+app(stocks);

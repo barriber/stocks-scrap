@@ -22,6 +22,9 @@ module.exports = {
         "formula": (stock) => `=GOOGLEFINANCE("${stock}","pe")`
     },
     "Forward p/e": {},
+    "Profit Margin": {
+        "description": "Profit margin is one of the commonly used profitability ratios to gauge the degree to which a company or a business activity makes money. It represents what percentage of sales has turned into profits. \n https://www.investopedia.com/terms/p/profitmargin.asp"
+    },
     "gross profit": {
         "description": "Gross profit is the profit a company makes after deducting the costs associated with making and selling its products, or the costs associated with providing its services. \n https://www.investopedia.com/terms/g/grossprofit.asp"
     },
@@ -36,9 +39,6 @@ module.exports = {
     },
     "Levered Free Cash Flow": {
         "description": "Levered free cash flow (LFCF) is the amount of money a company has left remaining after paying all of its financial obligations. LFCF is the amount of cash a company has after paying debts, while unlevered free cash flow (UFCF) is cash before debt payments are made. Levered free cash flow is important because it is the amount of cash that a company can use to pay dividends and make investments in the business.\n"
-    },
-    "Profit Margin": {
-        "description": "Profit margin is one of the commonly used profitability ratios to gauge the degree to which a company or a business activity makes money. It represents what percentage of sales has turned into profits."
     },
     "Operating Margin": {
         "description": "Operating margin measures how much profit a company makes on a dollar of sales after paying for variable costs of production, such as wages and raw materials, but before paying interest or tax. It is calculated by dividing a company’s operating income by its net sales."
