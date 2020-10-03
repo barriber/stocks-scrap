@@ -1,17 +1,43 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const puppeteer = require('puppeteer');
-const modifySpreadsheet = require('./spreadsheet');
+const {cloneDeep} = require('lodash')
+const {modifySpreadsheet, initializeSpreadSheet} = require('./spreadsheet');
 const definition = require('./spreadSheetDefinition.js')
 
 const regex = /\$stock/g;
 
-const getStatisticValue = (data, tableIndex, valueIndex, column) => {
-    const $ = cheerio.load(data);
-    const tables = $('tbody');
+const getStatisticValue = ($, tables, tableIndex, valueIndex, column) => {
     const rows = $(tables[tableIndex]).children();
     const row = $(rows[valueIndex]).children()
     return $(row[column || 1]).text();
+}
+
+const scrapStatistics = (statistics, stockDefinition) => {
+    const statisticsData = cheerio.load(statistics);
+    const statisticsTables = statisticsData('tbody');
+    stockDefinition['Forward p/e'].value = getStatisticValue(statisticsData, statisticsTables, 0, 3);
+    stockDefinition['peg'].value = getStatisticValue(statisticsData, statisticsTables, 0, 4);
+    stockDefinition['Return on Equity'].value = getStatisticValue(statisticsData, statisticsTables, 6, 1);
+    stockDefinition['gross profit'].value = getStatisticValue(statisticsData, statisticsTables, 7, 3);
+    stockDefinition['Operating Cash Flow'].value = getStatisticValue(statisticsData, statisticsTables, 9, 0);
+    stockDefinition['Levered Free Cash Flow'].value = getStatisticValue(statisticsData, statisticsTables, 9, 1);
+    stockDefinition['Profit Margin'].value = getStatisticValue(statisticsData, statisticsTables, 5, 0);
+    stockDefinition['Operating Margin'].value = getStatisticValue(statisticsData, statisticsTables, 5, 1);
+    stockDefinition['Current Ratio'].value = getStatisticValue(statisticsData, statisticsTables, 8, 4);
+    stockDefinition['Payout Ratio'].value = getStatisticValue(statisticsData, statisticsTables, 3, 5);
+}
+
+const scrapAnalysis = (analysis, stockDefinition) => {
+    const analysisData = cheerio.load(analysis);
+    const AnalysisTables = analysisData('tbody');
+    stockDefinition['earnings current year'].value = getStatisticValue(analysisData, AnalysisTables, 0, 1, 3);
+    stockDefinition["earnings next year"].value = getStatisticValue(analysisData, AnalysisTables, 0, 1, 4);
+    stockDefinition['sales Growth current year'].value = getStatisticValue(analysisData, AnalysisTables, 1, 5, 3);
+    stockDefinition['sales Growth next year'].value = getStatisticValue(analysisData, AnalysisTables, 1, 5, 4);
+    stockDefinition['Growth Estimates current year'].value = getStatisticValue(analysisData, AnalysisTables, 5, 2, 1);
+    stockDefinition['Growth Estimates next year'].value = getStatisticValue(analysisData, AnalysisTables, 5, 3, 1);
+    stockDefinition['Growth Estimates next 5 years'].value = getStatisticValue(analysisData, AnalysisTables, 5, 4, 1);
 }
 
 const scrap = async (stock, stockDefinition) => {
@@ -19,45 +45,10 @@ const scrap = async (stock, stockDefinition) => {
     const analysisUrl = 'https://finance.yahoo.com/quote/$stock/analysis?p=$stock';
     const [{data: statistics}, {data: analysis}] = await Promise.all(
         [axios(statisticsUrl.replace(regex, stock)), axios(analysisUrl.replace(regex, stock))])
-    stockDefinition.symbol.value = stock;
-    stockDefinition['Forward p/e'].value = getStatisticValue(statistics, 0, 3);
-    stockDefinition['peg'].value = getStatisticValue(statistics, 0, 4);
-    stockDefinition['operating cash flow'].value = getStatisticValue(statistics, 9, 0);
-    stockDefinition['gross profit'].value = getStatisticValue(statistics, 7, 3);
-    stockDefinition['Operating Cash Flow'].value = getStatisticValue(statistics, 9, 0);
-    stockDefinition['Levered Free Cash Flow'].value = getStatisticValue(statistics, 9, 1);
-    stockDefinition['Profit Margin'].value = getStatisticValue(statistics, 5, 0);
-    stockDefinition['Operating Margin'].value = getStatisticValue(statistics, 5, 1);
-    stockDefinition['Current Ratio'].value = getStatisticValue(statistics, 8, 4);
-    stockDefinition['Payout Ratio'].value = getStatisticValue(statistics, 3, 5);
-    stockDefinition['earnings current year'].value = getStatisticValue(analysis, 0, 1, 3);
-    stockDefinition["earnings next year"].value = getStatisticValue(analysis, 0, 1, 4);
-    stockDefinition['sales Growth current year'].value = getStatisticValue(analysis, 1, 5, 3);
-    stockDefinition['sales Growth next year'].value = getStatisticValue(analysis, 1, 5, 4);
-    stockDefinition['Growth Estimates current year'].value = getStatisticValue(analysis, 5, 2, 1);
-    stockDefinition['Growth Estimates next year'].value = getStatisticValue(analysis, 5, 3, 1);
-    stockDefinition['Growth Estimates next 5 years'].value = getStatisticValue(analysis, 5, 4, 1);
-}
 
-const getDividend = async (stock, browser) => {
-    const tipRanks = 'https://www.tipranks.com/stocks/$stock/dividends';
-    const page = await browser.newPage();
-    await page.goto(tipRanks.replace(regex, stock));
-    let found = false;
-    try {
-        await page.waitForFunction(
-            'document.querySelector("body").innerText.includes("Dividend Amount")', {timeout: 5000});
-        found = true;
-    } catch (e) {
-    }
-    // await page.screenshot({path: './screenshot.png', fullPage: true});
-    if (!found) {
-        return null;
-    }
-    const content = await page.content();
-    const $ = cheerio.load(content);
-    const values = $('.client-components-StockTabTemplate-InfoBox-InfoBox__bodySingleBoxInfo');
-    return $(values[1]).children().text();
+    scrapStatistics(statistics, stockDefinition);
+    scrapAnalysis(analysis, stockDefinition);
+    stockDefinition.symbol.value = stock;
 }
 
 const tipRankAnalysis = async (stock, browser) => {
@@ -76,10 +67,8 @@ const tipRankAnalysis = async (stock, browser) => {
 }
 
 const getStockData = async (stock, browser) => {
-    const stockDefinition = {...definition}
-    const [, dividend, tipRanks] = await Promise.all([scrap(stock, stockDefinition), getDividend(stock, browser),
-        tipRankAnalysis(stock, browser)]);
-    stockDefinition.dividend.value = dividend;
+    const stockDefinition = cloneDeep(definition)
+    const [, tipRanks] = await Promise.all([scrap(stock, stockDefinition), tipRankAnalysis(stock, browser)]);
     stockDefinition.tipRanks.value = tipRanks;
     return stockDefinition;
 }
@@ -87,10 +76,11 @@ const app = async (stocks) => {
     console.time('stock')
     const browser = await puppeteer.launch();
     const stocksDataPromise = stocks.map(stock => getStockData(stock, browser));
-    const stocksData = await Promise.all(stocksDataPromise)
+    const [sheetInit, ...stocksData] = await Promise.all([initializeSpreadSheet(), ...stocksDataPromise])
     await browser.close();
+    await modifySpreadsheet(stocksData, sheetInit);
     console.timeEnd('stock')
-    await modifySpreadsheet(stocksData[0]);
+
 }
 const stocks = process.argv.slice(2);
 
