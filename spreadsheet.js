@@ -15,10 +15,8 @@ const setHeader = async (sheet) => {
     })
 }
 
-const setValues = async (sheet, stock, rows ) => {
+const setValues = async (sheet, stock, rowIndex ) => {
     const values = Object.values(stock)
-    const stockRow = rows.find(row => row.symbol === stock.symbol.value);
-    const  rowIndex = stockRow ? stockRow.rowNumber : rows.length + 2;
     await sheet.loadCells(`A${rowIndex}:${LAST_COLUMN}${rowIndex}`);
     values.forEach((field, index) => {
         const cell = sheet.getCell(rowIndex -1, index);
@@ -32,7 +30,17 @@ const setValues = async (sheet, stock, rows ) => {
 }
 
 const modifySpreadsheet = async (stocks, {sheet, rows}) => {
-    await Promise.all(stocks.map(stock => setValues(sheet, stock, rows)))
+    //In order to know how many new lines needed
+    const stockPromises = stocks.reduce((acc, stock) => {
+        const stockRow = rows.find(row => row.symbol === stock.symbol.value);
+        const  rowIndex = stockRow ? stockRow.rowNumber : rows.length + acc.newStocks + 2;
+        acc.result.push(setValues(sheet, stock, rowIndex))
+        if(!stockRow) {
+            acc.newStocks += 1;
+        }
+        return acc;
+    }, {result: [], newStocks: 0})
+    await Promise.all(stockPromises.result)
     await sheet.saveUpdatedCells();
 }
 
@@ -52,4 +60,5 @@ const initializeSpreadSheet = async () => {
     return { sheet, rows }
 
 }
+
 module.exports = {modifySpreadsheet, initializeSpreadSheet}

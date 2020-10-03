@@ -4,7 +4,7 @@ const puppeteer = require('puppeteer');
 const {cloneDeep} = require('lodash')
 const {modifySpreadsheet, initializeSpreadSheet} = require('./spreadsheet');
 const definition = require('./spreadSheetDefinition.js')
-
+const fiveYears = 24 * 60 * 60 * 365 * 5;
 const regex = /\$stock/g;
 
 const getStatisticValue = ($, tables, tableIndex, valueIndex, column) => {
@@ -39,15 +39,33 @@ const scrapAnalysis = (analysis, stockDefinition) => {
     stockDefinition['Growth Estimates next year'].value = getStatisticValue(analysisData, AnalysisTables, 5, 3, 1);
     stockDefinition['Growth Estimates next 5 years'].value = getStatisticValue(analysisData, AnalysisTables, 5, 4, 1);
 }
-
+const scrapDividend = (dividend, stockDefinition) => {
+    const dividendPage = cheerio.load(dividend);
+    const dividendTable = dividendPage('tbody');
+    const lastDividend = getStatisticValue(dividendPage, dividendTable, 0, 0);
+    if (lastDividend !== '') {
+        const numberOfDividends = dividendPage(dividendTable[0]).children().length;
+        const firstDividend = getStatisticValue(dividendPage, dividendTable, 0, numberOfDividends - 1);
+        const firstDividendFloat = parseFloat(firstDividend.split('Dividend')[0]);
+        const lastDividendFloat = parseFloat(lastDividend.split('Dividend')[0]);
+        const dividendGrowth = ((lastDividendFloat - firstDividendFloat) / firstDividendFloat).toFixed(2);
+        stockDefinition.dividend.value = lastDividendFloat;
+        stockDefinition['dividend growth (5y)'].value = parseFloat(dividendGrowth)
+    }
+}
 const scrap = async (stock, stockDefinition) => {
+    const timeNow = Math.round(new Date().getTime() / 1000);
+    const fiveYearsAgo = timeNow - fiveYears;
     const statisticsUrl = 'https://finance.yahoo.com/quote/$stock/key-statistics?p=$stock';
     const analysisUrl = 'https://finance.yahoo.com/quote/$stock/analysis?p=$stock';
-    const [{data: statistics}, {data: analysis}] = await Promise.all(
-        [axios(statisticsUrl.replace(regex, stock)), axios(analysisUrl.replace(regex, stock))])
+    const dividendUrl = `https://finance.yahoo.com/quote/$stock/history?period1=${fiveYearsAgo}&period2=${timeNow}&interval=div%7Csplit&filter=div&frequency=1d`
+    const [{data: statistics}, {data: analysis}, {data: dividendData}] = await Promise.all(
+        [axios(statisticsUrl.replace(regex, stock)), axios(analysisUrl.replace(regex, stock)),
+            axios(dividendUrl.replace(regex, stock))])
 
     scrapStatistics(statistics, stockDefinition);
     scrapAnalysis(analysis, stockDefinition);
+    scrapDividend(dividendData, stockDefinition)
     stockDefinition.symbol.value = stock;
 }
 

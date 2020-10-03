@@ -52,6 +52,11 @@ module.exports = {
         "description": "The current ratio is a liquidity ratio that measures a company\"s ability to pay short-term obligations or those due within one year. It tells investors and analysts how a company can maximize the current assets on its balance sheet to satisfy its current debt and other payables."
     },
     "dividend": {},
+    "dividend growth (5y)": {
+        format: (cell) => {
+            cell.numberFormat = {type: 'PERCENT'}
+        }
+    },
     "Payout Ratio": {
         "description": "The dividend payout ratio is the ratio of the total amount of dividends paid out to shareholders relative to the net income of the company."
     },
