@@ -60,7 +60,6 @@ module.exports = {
     "Payout Ratio": {
         "description": "The dividend payout ratio is the ratio of the total amount of dividends paid out to shareholders relative to the net income of the company."
     },
-    "Dividend growth rate": {},
     "earnings current year": {},
 
     "earnings next year": {},

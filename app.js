@@ -1,7 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const {deepClone} = require('./utils');
 const puppeteer = require('puppeteer');
-const {cloneDeep} = require('lodash')
 const {modifySpreadsheet, initializeSpreadSheet} = require('./spreadsheet');
 const definition = require('./spreadSheetDefinition.js')
 const fiveYears = 24 * 60 * 60 * 365 * 5;
@@ -85,7 +85,7 @@ const tipRankAnalysis = async (stock, browser) => {
 }
 
 const getStockData = async (stock, browser) => {
-    const stockDefinition = cloneDeep(definition)
+    const stockDefinition = deepClone(definition);
     const [, tipRanks] = await Promise.all([scrap(stock, stockDefinition), tipRankAnalysis(stock, browser)]);
     stockDefinition.tipRanks.value = tipRanks;
     return stockDefinition;

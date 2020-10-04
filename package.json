@@ -12,7 +12,6 @@
     "axios": "^0.20.0",
     "cheerio": "^1.0.0-rc.3",
     "google-spreadsheet": "^3.0.13",
-    "lodash": "^4.17.20",
     "puppeteer": "^5.3.1"
   }
 }
