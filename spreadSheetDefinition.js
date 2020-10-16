@@ -1,5 +1,11 @@
+const industryAverage = require('./industryAverages.json');
+
 module.exports = {
-    "symbol": {},
+    "symbol": {
+        formula: (stock) => `=HYPERLINK("https://finance.yahoo.com/quote/${stock}/", "${stock}")`
+    },
+    "sector": {},
+    industry: {},
     "price": {
         formula: (stock) => `=GOOGLEFINANCE("${stock}")`
     },
@@ -19,28 +25,65 @@ module.exports = {
         }
     },
     "p/e": {
-        "formula": (stock) => `=GOOGLEFINANCE("${stock}","pe")`
+        "formula": (stock) => `=GOOGLEFINANCE("${stock}","pe")`,
+        "valueNote": (industry) => {
+            return `Industry average is ${industryAverage[industry] && industryAverage[industry].pe} `
+        },
     },
-    "Forward p/e": {},
+    "Forward p/e": {
+        valueNote: (industry) => {
+            return `Industry average is ${industryAverage[industry].pe} `
+        },
+        format: (cell, fieldValue, industry) => {
+            const industryRoe = industryAverage[industry].pe;
+            if(fieldValue > industryRoe * 1.1) {
+                cell.textFormat = {foregroundColor: {red: 1, green: 0, blue: 0}}
+            } else if (fieldValue < industryRoe * 0.9){
+                cell.textFormat = {foregroundColor: {red: 0, green: 1, blue: 0}}
+            }
+        }
+    },
     "Profit Margin": {
         "description": "Profit margin is one of the commonly used profitability ratios to gauge the degree to which a company or a business activity makes money. It represents what percentage of sales has turned into profits. \n https://www.investopedia.com/terms/p/profitmargin.asp"
     },
     "Return on Equity": {
         description: 'Return on equity (ROE) is a measure of financial performance calculated by dividing net income by shareholders\' equity. Because shareholders\' equity is equal to a company’s assets minus its debt, ROE is considered the return on net assets. ROE is considered a measure of how effectively management is using a company’s assets to create profits.' +
             '\n average is 14% below 10% is bad \n https://www.investopedia.com/terms/r/returnonequity.asp',
-
+        valueNote: (industry) => {
+            return `Industry average is ${industryAverage[industry].roe} `
+        },
+        format: (cell, fieldValue, industry) => {
+            const industryRoe = industryAverage[industry].roe;
+            const floatValue = parseFloat(fieldValue.split('%')[0])
+            if(floatValue > industryRoe * 1.1) {
+                cell.textFormat = {foregroundColor: {red: 0, green: 1, blue: 0}}
+            } else if (floatValue < industryRoe * 0.9){
+                cell.textFormat = {foregroundColor: {red: 1, green: 0, blue: 0}}
+            }
+        }
     },
     "gross profit": {
         "description": "Gross profit is the profit a company makes after deducting the costs associated with making and selling its products, or the costs associated with providing its services. \n https://www.investopedia.com/terms/g/grossprofit.asp"
     },
-    "Free Cash Flow Yield (missing)":{
-      description: "Free cash flow yield is a financial solvency ratio that compares the free cash flow per share a company is expected to earn against its market value per share. The ratio is calculated by taking the free cash flow per share divided by the current share price. \n https://www.investopedia.com/terms/f/freecashflowyield.asp (above 5)"
-    },
+    // "Free Cash Flow Yield (missing)":{
+    //   description: "Free cash flow yield is a financial solvency ratio that compares the free cash flow per share a company is expected to earn against its market value per share. The ratio is calculated by taking the free cash flow per share divided by the current share price. \n https://www.investopedia.com/terms/f/freecashflowyield.asp (above 5)"
+    // },
     "peg": {
         "description": "The price/earnings to growth ratio (PEG ratio) is a stock\"s price-to-earnings (P/E) ratio divided by the growth rate of its earnings for a specified time period. The PEG ratio is used to determine a stock\"s value while also factoring in the company\"s expected earnings growth, and it is thought to provide a more complete picture than the more standard P/E ratio."
     },
     "Operating Cash Flow": {
         "description": "The operating cash flow ratio is a measure of how well current liabilities are covered by the cash flows generated from a company\"s operations. The ratio can help gauge a company\"s liquidity in the short term."
+    },
+    "Debt/Equity": {
+        description: "The debt-to-equity (D/E) ratio is calculated by dividing a company’s total liabilities by its shareholder equity.",
+        format: (cell, fieldValue, industry) => {
+            const industryRoe = industryAverage[industry]['debt/equity'];
+            if(fieldValue > industryRoe * 1.1) {
+                cell.textFormat = {foregroundColor: {red: 1, green: 0, blue: 0}}
+            } else if (fieldValue < industryRoe * 0.9){
+                cell.textFormat = {foregroundColor: {red: 0, green: 1, blue: 0}}
+            }
+        }
     },
     "Levered Free Cash Flow": {
         "description": "Levered free cash flow (LFCF) is the amount of money a company has left remaining after paying all of its financial obligations. LFCF is the amount of cash a company has after paying debts, while unlevered free cash flow (UFCF) is cash before debt payments are made. Levered free cash flow is important because it is the amount of cash that a company can use to pay dividends and make investments in the business.\n "
@@ -53,9 +96,7 @@ module.exports = {
     },
     "dividend": {},
     "dividend growth (5y)": {
-        format: (cell) => {
-            cell.numberFormat = {type: 'PERCENT'}
-        }
+
     },
     "Payout Ratio": {
         "description": "The dividend payout ratio is the ratio of the total amount of dividends paid out to shareholders relative to the net income of the company."

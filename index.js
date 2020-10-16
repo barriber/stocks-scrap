@@ -4,6 +4,7 @@ const {deepClone} = require('./utils');
 const puppeteer = require('puppeteer');
 const {modifySpreadsheet, initializeSpreadSheet} = require('./spreadsheet');
 const definition = require('./spreadSheetDefinition.js')
+const {industryScrap} = require("./indusrty");
 const fiveYears = 24 * 60 * 60 * 365 * 5;
 const regex = /\$stock/g;
 
@@ -26,6 +27,22 @@ const scrapStatistics = (statistics, stockDefinition) => {
     stockDefinition['Operating Margin'].value = getStatisticValue(statisticsData, statisticsTables, 5, 1);
     stockDefinition['Current Ratio'].value = getStatisticValue(statisticsData, statisticsTables, 8, 4);
     stockDefinition['Payout Ratio'].value = getStatisticValue(statisticsData, statisticsTables, 3, 5);
+    stockDefinition['Debt/Equity'].value = getStatisticValue(statisticsData, statisticsTables, 8, 3);
+}
+
+const scrapProfile = (profileData, stockDefinition) => {
+    const $ = cheerio.load(profileData);
+    const profile = $('.asset-profile-container p')[1];
+    const profileInfo = $('span',profile);
+    const sector = $(profileInfo[1]).text();
+    let industry = $(profileInfo[3]).text()
+    stockDefinition.sector.value = sector;
+    if(industry === 'Software—Application') {
+        industry = 'Software-Application'
+    }
+
+    stockDefinition.industry.value = industry;
+
 }
 
 const scrapAnalysis = (analysis, stockDefinition) => {
@@ -56,16 +73,18 @@ const scrapDividend = (dividend, stockDefinition) => {
 const scrap = async (stock, stockDefinition) => {
     const timeNow = Math.round(new Date().getTime() / 1000);
     const fiveYearsAgo = timeNow - fiveYears;
+    const mainUrl = 'https://finance.yahoo.com/quote/$stock/profile?p=$stock'
     const statisticsUrl = 'https://finance.yahoo.com/quote/$stock/key-statistics?p=$stock';
     const analysisUrl = 'https://finance.yahoo.com/quote/$stock/analysis?p=$stock';
     const dividendUrl = `https://finance.yahoo.com/quote/$stock/history?period1=${fiveYearsAgo}&period2=${timeNow}&interval=div%7Csplit&filter=div&frequency=1d`
-    const [{data: statistics}, {data: analysis}, {data: dividendData}] = await Promise.all(
+    const [{data: statistics}, {data: analysis}, {data: dividendData}, {data: profileData}] = await Promise.all(
         [axios(statisticsUrl.replace(regex, stock)), axios(analysisUrl.replace(regex, stock)),
-            axios(dividendUrl.replace(regex, stock))])
+            axios(dividendUrl.replace(regex, stock)), axios(mainUrl.replace(regex, stock))])
 
     scrapStatistics(statistics, stockDefinition);
     scrapAnalysis(analysis, stockDefinition);
-    scrapDividend(dividendData, stockDefinition)
+    scrapDividend(dividendData, stockDefinition);
+    scrapProfile(profileData, stockDefinition);
     stockDefinition.symbol.value = stock;
 }
 
@@ -86,20 +105,23 @@ const tipRankAnalysis = async (stock, browser) => {
 
 const getStockData = async (stock, browser) => {
     const stockDefinition = deepClone(definition);
-    const [, tipRanks] = await Promise.all([scrap(stock, stockDefinition), tipRankAnalysis(stock, browser)]);
-    stockDefinition.tipRanks.value = tipRanks;
+    // const [, tipRanks] = await Promise.all([scrap(stock, stockDefinition), tipRankAnalysis(stock, browser)]);
+    // stockDefinition.tipRanks.value = tipRanks;
+    await scrap(stock, stockDefinition)
     return stockDefinition;
 }
-const app = async (stocks) => {
-    console.time('stock')
-    const browser = await puppeteer.launch();
-    const stocksDataPromise = stocks.map(stock => getStockData(stock, browser));
-    const [sheetInit, ...stocksData] = await Promise.all([initializeSpreadSheet(), ...stocksDataPromise])
+
+exports.stocks = async (req, res) => {
+    console.time('stocks');
+    const {stocks, spreadsheetId = '1AGra0hkxIFC5BMdeMDoGJBf4XmbNc0AfLXHQJH-LHVw'} = req.query;
+    const browser = await puppeteer.launch()
+    const stocksDataPromise = stocks.split(',').map(stock => getStockData(stock, browser));
+    const [sheetInit, ...stocksData] = await Promise.all([initializeSpreadSheet(spreadsheetId), ...stocksDataPromise])
     await browser.close();
     await modifySpreadsheet(stocksData, sheetInit);
-    console.timeEnd('stock')
-
+    console.timeEnd('stocks');
+    res.status(200).send('Done');
+    return;
 }
-const stocks = process.argv.slice(2);
 
-app(stocks);
+// gcloud functions deploy 'stockScrap'

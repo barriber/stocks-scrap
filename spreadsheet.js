@@ -8,7 +8,7 @@ const setHeader = async (sheet) => {
     await sheet.loadCells(`A1:${LAST_COLUMN}1`); // loads a range of cells
 
     values.forEach((field, index) => {
-        if (field.description) {
+        if (field.description && typeof field.description !== "function") {
             const cell = sheet.getCell(0, index);
             cell.note = field.description
         }
@@ -25,7 +25,12 @@ const setValues = async (sheet, stock, rowIndex ) => {
         } else {
             cell.value = field.value || 'N/A'
         }
-        field.format && field.format(cell);
+
+        if (field.valueNote) {
+            cell.note = field.valueNote(stock.industry.value)
+        }
+
+            field.format && field.format(cell, field.value, stock.industry.value);
     })
 }
 
@@ -44,8 +49,8 @@ const modifySpreadsheet = async (stocks, {sheet, rows}) => {
     await sheet.saveUpdatedCells();
 }
 
-const initializeSpreadSheet = async () => {
-    const doc = new GoogleSpreadsheet(process.env.spreadsheet_id);
+const initializeSpreadSheet = async (spreadsheetId) => {
+    const doc = new GoogleSpreadsheet(spreadsheetId);
     await doc.useServiceAccountAuth({
         client_email: process.env.client_email,
         private_key: process.env.private_key.replace(/\\n/gm, '\n'),
