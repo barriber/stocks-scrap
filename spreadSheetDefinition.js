@@ -1,4 +1,6 @@
 const industryAverage = require('./industryAverages.json');
+const {formatIndustryUpTrend} = require("./utils");
+const {formatIndustryDownTrend} = require("./utils");
 
 module.exports = {
     "symbol": {
@@ -30,19 +32,7 @@ module.exports = {
             return `Industry average is ${industryAverage[industry] && industryAverage[industry].pe} `
         },
     },
-    "Forward p/e": {
-        valueNote: (industry) => {
-            return `Industry average is ${industryAverage[industry].pe} `
-        },
-        format: (cell, fieldValue, industry) => {
-            const industryRoe = industryAverage[industry].pe;
-            if(fieldValue > industryRoe * 1.1) {
-                cell.textFormat = {foregroundColor: {red: 1, green: 0, blue: 0}}
-            } else if (fieldValue < industryRoe * 0.9){
-                cell.textFormat = {foregroundColor: {red: 0, green: 1, blue: 0}}
-            }
-        }
-    },
+    "Forward p/e": {},
     "Profit Margin": {
         "description": "Profit margin is one of the commonly used profitability ratios to gauge the degree to which a company or a business activity makes money. It represents what percentage of sales has turned into profits. \n https://www.investopedia.com/terms/p/profitmargin.asp"
     },
@@ -53,13 +43,7 @@ module.exports = {
             return `Industry average is ${industryAverage[industry].roe} `
         },
         format: (cell, fieldValue, industry) => {
-            const industryRoe = industryAverage[industry].roe;
-            const floatValue = parseFloat(fieldValue.split('%')[0])
-            if(floatValue > industryRoe * 1.1) {
-                cell.textFormat = {foregroundColor: {red: 0, green: 1, blue: 0}}
-            } else if (floatValue < industryRoe * 0.9){
-                cell.textFormat = {foregroundColor: {red: 1, green: 0, blue: 0}}
-            }
+            formatIndustryUpTrend(cell, fieldValue, industryAverage[industry].roe)
         }
     },
     "gross profit": {
@@ -76,13 +60,11 @@ module.exports = {
     },
     "Debt/Equity": {
         description: "The debt-to-equity (D/E) ratio is calculated by dividing a company’s total liabilities by its shareholder equity.",
+        "valueNote": (industry) => {
+            return `Industry average is ${industryAverage[industry] && industryAverage[industry]['debt/equity']}`
+        },
         format: (cell, fieldValue, industry) => {
-            const industryRoe = industryAverage[industry]['debt/equity'];
-            if(fieldValue > industryRoe * 1.1) {
-                cell.textFormat = {foregroundColor: {red: 1, green: 0, blue: 0}}
-            } else if (fieldValue < industryRoe * 0.9){
-                cell.textFormat = {foregroundColor: {red: 0, green: 1, blue: 0}}
-            }
+            formatIndustryDownTrend(cell, fieldValue, industryAverage[industry]['debt/equity']);
         }
     },
     "Levered Free Cash Flow": {
@@ -102,12 +84,17 @@ module.exports = {
         "description": "The dividend payout ratio is the ratio of the total amount of dividends paid out to shareholders relative to the net income of the company."
     },
     "earnings current year": {},
-
+    "price/book": {},
+    "price/sales": {},
     "earnings next year": {},
     "sales Growth current year": {},
     "sales Growth next year": {},
     "Growth Estimates current year": {},
     "Growth Estimates next year": {},
     "Growth Estimates next 5 years": {},
-    "tipRanks": {}
+    "tipRanks": {},
+    'industry pe': {},
+    'Zacks recommendation': {
+        description: '(1=Buy, 5=Sell)'
+    }
 }

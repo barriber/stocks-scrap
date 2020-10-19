@@ -4,6 +4,9 @@ const {deepClone} = require('./utils');
 const puppeteer = require('puppeteer');
 const {modifySpreadsheet, initializeSpreadSheet} = require('./spreadsheet');
 const definition = require('./spreadSheetDefinition.js')
+const industryAverages = require('./industryAverages.json')
+const {formatIndustryUpTrend} = require("./utils");
+const {formatIndustryDownTrend} = require("./utils");
 const {industryScrap} = require("./indusrty");
 const fiveYears = 24 * 60 * 60 * 365 * 5;
 const regex = /\$stock/g;
@@ -28,6 +31,8 @@ const scrapStatistics = (statistics, stockDefinition) => {
     stockDefinition['Current Ratio'].value = getStatisticValue(statisticsData, statisticsTables, 8, 4);
     stockDefinition['Payout Ratio'].value = getStatisticValue(statisticsData, statisticsTables, 3, 5);
     stockDefinition['Debt/Equity'].value = getStatisticValue(statisticsData, statisticsTables, 8, 3);
+    stockDefinition['price/book'].value = getStatisticValue(statisticsData, statisticsTables, 0, 6);
+    stockDefinition['price/sales'].value = getStatisticValue(statisticsData, statisticsTables, 0, 5);
 }
 
 const scrapProfile = (profileData, stockDefinition) => {
@@ -37,12 +42,11 @@ const scrapProfile = (profileData, stockDefinition) => {
     const sector = $(profileInfo[1]).text();
     let industry = $(profileInfo[3]).text()
     stockDefinition.sector.value = sector;
-    if(industry === 'Software—Application') {
-        industry = 'Software-Application'
-    }
-
+    industry = industry.replace('—', ' - ')
     stockDefinition.industry.value = industry;
-
+    if(industryAverages[industry]) {
+        stockDefinition['industry pe'].value = industryAverages[industry].pe
+    }
 }
 
 const scrapAnalysis = (analysis, stockDefinition) => {
@@ -70,6 +74,49 @@ const scrapDividend = (dividend, stockDefinition) => {
         stockDefinition['dividend growth (5y)'].value = parseFloat(dividendGrowth)
     }
 }
+
+const zacksTableParser = ($, tableId) => {
+    const tableRows = $(`#${tableId} tr`);
+    const rows = [];
+    tableRows.each((index, row) => {
+        if(index > 0) {
+            const rowObj = {}
+            const columns = $(row).children();
+            rowObj.title = $(columns[0]).text();
+            rowObj.company = $(columns[1]).text();
+            rowObj.industry = $(columns[2]).text();
+
+            rows.push(rowObj)
+        }
+    })
+    return rows;
+}
+
+const zacksScrap = (zacksData, stockDefinition) => {
+    const $ = cheerio.load(zacksData);
+    const zacksRecomendations = zacksTableParser($, 'recommendations_estimates')
+    const growthRatesTable = zacksTableParser($, 'growth_rates')
+    const financialsTable = zacksTableParser($, 'financials')
+
+    stockDefinition['Zacks recommendation'] = {
+
+        value: zacksRecomendations[0].company,
+        valueNote: () => `Industry Zacks recommendation: ${zacksRecomendations[0].industry}`
+    }
+
+    stockDefinition["Growth Estimates next 5 years"].valueNote = () => `Zacks estimate: ${growthRatesTable[3].company}
+    \nIndustry Zacks estimates: ${growthRatesTable[3].industry}`
+    stockDefinition["Growth Estimates next year"].valueNote = () =>  `Zacks estimate: ${growthRatesTable[1].company}
+    \nIndustry Zacks estimates: ${growthRatesTable[1].industry}`
+    stockDefinition["Profit Margin"].valueNote = () => `Industry average ${financialsTable[4].industry}`
+    stockDefinition["Profit Margin"].format = (cell, fieldValue) => {
+        formatIndustryUpTrend(cell, fieldValue, financialsTable[4].industry);
+    }
+    stockDefinition["price/book"].valueNote =  () => `industry ${financialsTable[1].industry}`
+    stockDefinition["price/book"].format =  (cell, fieldValue) => {
+        formatIndustryDownTrend(cell, fieldValue, financialsTable[1].industry);
+    }
+}
 const scrap = async (stock, stockDefinition) => {
     const timeNow = Math.round(new Date().getTime() / 1000);
     const fiveYearsAgo = timeNow - fiveYears;
@@ -77,14 +124,17 @@ const scrap = async (stock, stockDefinition) => {
     const statisticsUrl = 'https://finance.yahoo.com/quote/$stock/key-statistics?p=$stock';
     const analysisUrl = 'https://finance.yahoo.com/quote/$stock/analysis?p=$stock';
     const dividendUrl = `https://finance.yahoo.com/quote/$stock/history?period1=${fiveYearsAgo}&period2=${timeNow}&interval=div%7Csplit&filter=div&frequency=1d`
-    const [{data: statistics}, {data: analysis}, {data: dividendData}, {data: profileData}] = await Promise.all(
+    const zacksIndustryUrl = `https://www.zacks.com/stock/research/$stock/industry-comparison`;
+    const [{data: statistics}, {data: analysis}, {data: dividendData}, {data: profileData}, {data: zacksIndustry}] = await Promise.all(
         [axios(statisticsUrl.replace(regex, stock)), axios(analysisUrl.replace(regex, stock)),
-            axios(dividendUrl.replace(regex, stock)), axios(mainUrl.replace(regex, stock))])
+            axios(dividendUrl.replace(regex, stock)), axios(mainUrl.replace(regex, stock)),
+            axios(zacksIndustryUrl.replace(regex, stock)) ])
 
     scrapStatistics(statistics, stockDefinition);
     scrapAnalysis(analysis, stockDefinition);
     scrapDividend(dividendData, stockDefinition);
     scrapProfile(profileData, stockDefinition);
+    zacksScrap(zacksIndustry, stockDefinition)
     stockDefinition.symbol.value = stock;
 }
 
@@ -123,5 +173,10 @@ exports.stocks = async (req, res) => {
     res.status(200).send('Done');
     return;
 }
+
+// exports.industry = async (req, res) => {
+//     await industryScrap()
+//     res.status(200).send('ready')
+// }
 
 // gcloud functions deploy 'stockScrap'

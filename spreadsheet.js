@@ -58,7 +58,7 @@ const initializeSpreadSheet = async (spreadsheetId) => {
     await doc.loadInfo();
     const sheet = doc.sheetsByIndex[0];
 
-    await sheet.resize({rowCount: 30, columnCount: 50})
+    // await sheet.resize({rowCount: 30, columnCount: 50})
     await setHeader(sheet);
     const rows = await sheet.getRows();
 
