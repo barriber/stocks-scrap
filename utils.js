@@ -14,8 +14,8 @@ const deepClone = (aObject) => {
 }
 
 const formatIndustryDownTrend = (cell, fieldValue, industry) => {
+    const fieldFloat = typeof fieldValue === 'string' ? parseFloat(fieldValue.split('%')[0]): fieldValue
     const industryFloat =  typeof industry === 'string' ? parseFloat(industry.split('%')[0]) : industry
-    const fieldFloat = typeof industry === 'string' ? parseFloat(fieldValue.split('%')[0]): fieldValue
 
     if(fieldFloat > industryFloat * 1.1) {
         cell.textFormat = {foregroundColor: {red: 1, green: 0, blue: 0}}
@@ -26,7 +26,7 @@ const formatIndustryDownTrend = (cell, fieldValue, industry) => {
 }
 
 const formatIndustryUpTrend = (cell, fieldValue, industry) => {
-    const fieldFloat = typeof industry === 'string' ? parseFloat(fieldValue.split('%')[0]): fieldValue
+    const fieldFloat = typeof fieldValue === 'string' ? parseFloat(fieldValue.split('%')[0]): fieldValue
     const industryValue = typeof industry === 'string' ? parseFloat(industry.split('%')[0]): industry
     if(fieldFloat > industryValue * 1.1) {
         cell.textFormat = {foregroundColor: {red: 0, green: 1, blue: 0}}

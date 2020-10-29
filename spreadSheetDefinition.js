@@ -33,12 +33,16 @@ module.exports = {
         },
     },
     "Forward p/e": {},
+    peg: {
+        "description": "The price/earnings to growth ratio (PEG ratio) is a stock\"s price-to-earnings (P/E) ratio divided by the growth rate of its earnings for a specified time period. The PEG ratio is used to determine a stock\"s value while also factoring in the company\"s expected earnings growth, and it is thought to provide a more complete picture than the more standard P/E ratio."
+    },
     "Profit Margin": {
         "description": "Profit margin is one of the commonly used profitability ratios to gauge the degree to which a company or a business activity makes money. It represents what percentage of sales has turned into profits. \n https://www.investopedia.com/terms/p/profitmargin.asp"
     },
-    "Return on Equity": {
-        description: 'Return on equity (ROE) is a measure of financial performance calculated by dividing net income by shareholders\' equity. Because shareholders\' equity is equal to a company’s assets minus its debt, ROE is considered the return on net assets. ROE is considered a measure of how effectively management is using a company’s assets to create profits.' +
-            '\n average is 14% below 10% is bad \n https://www.investopedia.com/terms/r/returnonequity.asp',
+    ROE: {
+        description: 'Return on equity (ROE) is a measure of financial performance calculated by dividing net income by shareholders\' equity. Because shareholders\' equity is equal to a company’s assets minus its debt, ROE is considered the return on net assets. ROE is considered a measure of how effectively management is using a company’s assets to create profits.\n' +
+            'ROE=EPS/BookValue\n' +
+            'Average is 14% below 7% is bad \n https://www.investopedia.com/terms/r/returnonequity.asp',
         valueNote: (industry) => {
             return `Industry average is ${industryAverage[industry].roe} `
         },
@@ -52,9 +56,6 @@ module.exports = {
     // "Free Cash Flow Yield (missing)":{
     //   description: "Free cash flow yield is a financial solvency ratio that compares the free cash flow per share a company is expected to earn against its market value per share. The ratio is calculated by taking the free cash flow per share divided by the current share price. \n https://www.investopedia.com/terms/f/freecashflowyield.asp (above 5)"
     // },
-    "peg": {
-        "description": "The price/earnings to growth ratio (PEG ratio) is a stock\"s price-to-earnings (P/E) ratio divided by the growth rate of its earnings for a specified time period. The PEG ratio is used to determine a stock\"s value while also factoring in the company\"s expected earnings growth, and it is thought to provide a more complete picture than the more standard P/E ratio."
-    },
     "Operating Cash Flow": {
         "description": "The operating cash flow ratio is a measure of how well current liabilities are covered by the cash flows generated from a company\"s operations. The ratio can help gauge a company\"s liquidity in the short term."
     },
@@ -74,7 +75,7 @@ module.exports = {
         "description": "Operating margin measures how much profit a company makes on a dollar of sales after paying for variable costs of production, such as wages and raw materials, but before paying interest or tax. It is calculated by dividing a company’s operating income by its net sales."
     },
     "Current Ratio": {
-        "description": "The current ratio is a liquidity ratio that measures a company\"s ability to pay short-term obligations or those due within one year. It tells investors and analysts how a company can maximize the current assets on its balance sheet to satisfy its current debt and other payables."
+        "description": "The current ratio is a liquidity ratio that measures a company\"s ability to pay short-term obligations or those due within one year. It tells investors and analysts how a company can maximize the current assets on its balance sheet to satisfy its current debt and other payables.\n assets/debt (UP)"
     },
     "dividend": {},
     "dividend growth (5y)": {
@@ -92,9 +93,11 @@ module.exports = {
     "Growth Estimates current year": {},
     "Growth Estimates next year": {},
     "Growth Estimates next 5 years": {},
+    competitors: {},
     "tipRanks": {},
     'industry pe': {},
     'Zacks recommendation': {
         description: '(1=Buy, 5=Sell)'
-    }
+    },
+
 }

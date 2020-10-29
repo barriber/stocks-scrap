@@ -967,7 +967,7 @@
     "eps growth (5y)": 2.6,
     "pe": 87.5
   },
-  "Software-Application": {
+  "Software - Application": {
     "sector": "Technology",
     "roe": 50.4,
     "debt/equity": 68.3,
@@ -975,7 +975,7 @@
     "eps growth (5y)": 6,
     "pe": 147.5
   },
-  "Software-Infrastructure": {
+  "Software - Infrastructure": {
     "sector": "Technology",
     "roe": 36.1,
     "debt/equity": 96.3,

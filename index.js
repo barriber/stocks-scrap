@@ -22,7 +22,7 @@ const scrapStatistics = (statistics, stockDefinition) => {
     const statisticsTables = statisticsData('tbody');
     stockDefinition['Forward p/e'].value = getStatisticValue(statisticsData, statisticsTables, 0, 3);
     stockDefinition['peg'].value = getStatisticValue(statisticsData, statisticsTables, 0, 4);
-    stockDefinition['Return on Equity'].value = getStatisticValue(statisticsData, statisticsTables, 6, 1);
+    stockDefinition['ROE'].value = getStatisticValue(statisticsData, statisticsTables, 6, 1);
     stockDefinition['gross profit'].value = getStatisticValue(statisticsData, statisticsTables, 7, 3);
     stockDefinition['Operating Cash Flow'].value = getStatisticValue(statisticsData, statisticsTables, 9, 0);
     stockDefinition['Levered Free Cash Flow'].value = getStatisticValue(statisticsData, statisticsTables, 9, 1);
@@ -33,6 +33,8 @@ const scrapStatistics = (statistics, stockDefinition) => {
     stockDefinition['Debt/Equity'].value = getStatisticValue(statisticsData, statisticsTables, 8, 3);
     stockDefinition['price/book'].value = getStatisticValue(statisticsData, statisticsTables, 0, 6);
     stockDefinition['price/sales'].value = getStatisticValue(statisticsData, statisticsTables, 0, 5);
+    const market = statisticsData('#quote-header-info span').text().split(' - ')[0];
+    stockDefinition.market = market === 'NasdaqGS' ? 'NASDAQ' : market.toUpperCase();
 }
 
 const scrapProfile = (profileData, stockDefinition) => {
@@ -92,30 +94,56 @@ const zacksTableParser = ($, tableId) => {
     return rows;
 }
 
-const zacksScrap = (zacksData, stockDefinition) => {
-    const $ = cheerio.load(zacksData);
+const zacksScrap = async (stock, stockDefinition) => {
+    const zacksIndustryUrl = `https://www.zacks.com/stock/research/$stock/industry-comparison`;
+    let zacksData
+    try {
+        zacksData = await axios(zacksIndustryUrl.replace(regex, stock))
+        console.log('================', zacksData)
+    } catch (e) {
+        console.log('ZACKS FAILED')
+        console.log('xxxxx',JSON.stringify(e))
+    }
+
+    console.log('ZACKS FETCH SUCCESSS')
+    const $ = cheerio.load(zacksData.data);
     const zacksRecomendations = zacksTableParser($, 'recommendations_estimates')
     const growthRatesTable = zacksTableParser($, 'growth_rates')
     const financialsTable = zacksTableParser($, 'financials')
 
-    stockDefinition['Zacks recommendation'] = {
+    if(zacksRecomendations.length > 0) {
+        stockDefinition['Zacks recommendation'] = {
+            value: zacksRecomendations[0].company,
+            valueNote: () => `Industry Zacks recommendation: ${zacksRecomendations[0].industry}`
+        }
 
-        value: zacksRecomendations[0].company,
-        valueNote: () => `Industry Zacks recommendation: ${zacksRecomendations[0].industry}`
-    }
-
-    stockDefinition["Growth Estimates next 5 years"].valueNote = () => `Zacks estimate: ${growthRatesTable[3].company}
+        stockDefinition["Growth Estimates next 5 years"].valueNote = () => `Zacks estimate: ${growthRatesTable[3].company}
     \nIndustry Zacks estimates: ${growthRatesTable[3].industry}`
-    stockDefinition["Growth Estimates next year"].valueNote = () =>  `Zacks estimate: ${growthRatesTable[1].company}
+        stockDefinition["Growth Estimates next year"].valueNote = () => `Zacks estimate: ${growthRatesTable[1].company}
     \nIndustry Zacks estimates: ${growthRatesTable[1].industry}`
-    stockDefinition["Profit Margin"].valueNote = () => `Industry average ${financialsTable[4].industry}`
-    stockDefinition["Profit Margin"].format = (cell, fieldValue) => {
-        formatIndustryUpTrend(cell, fieldValue, financialsTable[4].industry);
+        stockDefinition["Profit Margin"].valueNote = () => `Industry average ${financialsTable[4].industry}`
+        stockDefinition["Profit Margin"].format = (cell, fieldValue) => {
+            formatIndustryUpTrend(cell, fieldValue, financialsTable[4].industry);
+        }
+        stockDefinition["price/book"].valueNote = () => `industry ${financialsTable[1].industry}`
+        stockDefinition["price/book"].format = (cell, fieldValue) => {
+            formatIndustryDownTrend(cell, fieldValue, financialsTable[1].industry);
+        }
     }
-    stockDefinition["price/book"].valueNote =  () => `industry ${financialsTable[1].industry}`
-    stockDefinition["price/book"].format =  (cell, fieldValue) => {
-        formatIndustryDownTrend(cell, fieldValue, financialsTable[1].industry);
-    }
+}
+const scrapCompetitors = async (stockDefinition, stock) => {
+    console.log('START ZACKS!!!')
+    const competitorsUrl = `https://www.marketbeat.com/stocks/${stockDefinition.market}/${stock}/competitors-and-alternatives/`
+   const {data: competitorData} = await axios(competitorsUrl.replace(regex, stock))
+    const $ = cheerio.load(competitorData);
+    const competitors = $('.ticker-area').slice(0, 5);
+    const stocks = []
+    competitors.each((i, competitor ) => {
+        const stock = $(competitor).text();
+        stocks.push(stock)
+    })
+
+    stockDefinition.competitors.value = stocks.join(', ')
 }
 const scrap = async (stock, stockDefinition) => {
     const timeNow = Math.round(new Date().getTime() / 1000);
@@ -124,17 +152,17 @@ const scrap = async (stock, stockDefinition) => {
     const statisticsUrl = 'https://finance.yahoo.com/quote/$stock/key-statistics?p=$stock';
     const analysisUrl = 'https://finance.yahoo.com/quote/$stock/analysis?p=$stock';
     const dividendUrl = `https://finance.yahoo.com/quote/$stock/history?period1=${fiveYearsAgo}&period2=${timeNow}&interval=div%7Csplit&filter=div&frequency=1d`
-    const zacksIndustryUrl = `https://www.zacks.com/stock/research/$stock/industry-comparison`;
-    const [{data: statistics}, {data: analysis}, {data: dividendData}, {data: profileData}, {data: zacksIndustry}] = await Promise.all(
+    console.log('START FETCHING');
+    const [{data: statistics}, {data: analysis}, {data: dividendData},
+        {data: profileData}] = await Promise.all(
         [axios(statisticsUrl.replace(regex, stock)), axios(analysisUrl.replace(regex, stock)),
-            axios(dividendUrl.replace(regex, stock)), axios(mainUrl.replace(regex, stock)),
-            axios(zacksIndustryUrl.replace(regex, stock)) ])
-
+            axios(dividendUrl.replace(regex, stock)), axios(mainUrl.replace(regex, stock))])
     scrapStatistics(statistics, stockDefinition);
     scrapAnalysis(analysis, stockDefinition);
     scrapDividend(dividendData, stockDefinition);
     scrapProfile(profileData, stockDefinition);
-    zacksScrap(zacksIndustry, stockDefinition)
+    // await zacksScrap(stock, stockDefinition);
+    await scrapCompetitors(stockDefinition, stock);
     stockDefinition.symbol.value = stock;
 }
 
@@ -165,6 +193,7 @@ exports.stocks = async (req, res) => {
     console.time('stocks');
     const {stocks, spreadsheetId = '1AGra0hkxIFC5BMdeMDoGJBf4XmbNc0AfLXHQJH-LHVw'} = req.query;
     const browser = await puppeteer.launch()
+    console.log('stocks', stocks)
     const stocksDataPromise = stocks.split(',').map(stock => getStockData(stock, browser));
     const [sheetInit, ...stocksData] = await Promise.all([initializeSpreadSheet(spreadsheetId), ...stocksDataPromise])
     await browser.close();

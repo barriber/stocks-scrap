@@ -17,20 +17,24 @@ const setHeader = async (sheet) => {
 
 const setValues = async (sheet, stock, rowIndex ) => {
     const values = Object.values(stock)
+    const keys = Object.keys(stock);
     await sheet.loadCells(`A${rowIndex}:${LAST_COLUMN}${rowIndex}`);
     values.forEach((field, index) => {
-        const cell = sheet.getCell(rowIndex -1, index);
-        if (field.formula) {
-            cell.formula = field.formula(values[0].value)
-        } else {
-            cell.value = field.value || 'N/A'
-        }
+        const headerIndex = sheet.headerValues.findIndex(val => val === keys[index]);
+        if(headerIndex > -1) {
+            const cell = sheet.getCell(rowIndex - 1, headerIndex);
+            if (field.formula) {
+                cell.formula = field.formula(values[0].value)
+            } else {
+                cell.value = field.value || 'N/A'
+            }
 
-        if (field.valueNote) {
-            cell.note = field.valueNote(stock.industry.value)
-        }
+            if (field.valueNote) {
+                cell.note = field.valueNote(stock.industry.value)
+            }
 
             field.format && field.format(cell, field.value, stock.industry.value);
+        }
     })
 }
 
@@ -55,13 +59,16 @@ const initializeSpreadSheet = async (spreadsheetId) => {
         client_email: process.env.client_email,
         private_key: process.env.private_key.replace(/\\n/gm, '\n'),
     });
-    await doc.loadInfo();
+    console.log('SPREADSHEET AUTH SUCCESS')
+     await doc.loadInfo();
     const sheet = doc.sheetsByIndex[0];
 
-    // await sheet.resize({rowCount: 30, columnCount: 50})
-    await setHeader(sheet);
-    const rows = await sheet.getRows();
+    if(sheet.gridProperties.columnCount < 50) {
+        await sheet.resize({rowCount: 100, columnCount: 50})
+        await setHeader(sheet);
+    }
 
+    const rows = await sheet.getRows();
     return { sheet, rows }
 
 }
