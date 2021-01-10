@@ -8,23 +8,33 @@ module.exports = {
     },
     "sector": {},
     industry: {},
+    "day change": {
+        formula: (stock) => `=GOOGLEFINANCE("${stock}","changepct") / 100`,
+        format: (cell) => {
+            cell.numberFormat = {type: 'PERCENT'};
+        }
+    },
     "price": {
-        formula: (stock) => `=GOOGLEFINANCE("${stock}")`
+        formula: (stock) => `=GOOGLEFINANCE("${stock}")`,
+    },
+    "Target price": {
+
+    },
+    "Target diff": {
+
     },
     "market cap": {
         formula: (stock) => `=GOOGLEFINANCE("${stock}", "marketcap")`,
+        format: (cell) => {
+            cell.numberFormat = {type: 'NUMBER'};
+
+        }
     },
     "52 week low": {
         formula: (stock) => `=GOOGLEFINANCE("${stock}", "low52")`,
     },
     "52 week high": {
         formula: (stock) => `=GOOGLEFINANCE("${stock}", "high52")`,
-    },
-    "day change": {
-        formula: (stock) => `=GOOGLEFINANCE("${stock}","changepct") / 100`,
-        format: (cell) => {
-            cell.numberFormat = {type: 'PERCENT'}
-        }
     },
     "p/e": {
         "formula": (stock) => `=GOOGLEFINANCE("${stock}","pe")`,
@@ -44,10 +54,10 @@ module.exports = {
             'ROE=EPS/BookValue\n' +
             'Average is 14% below 7% is bad \n https://www.investopedia.com/terms/r/returnonequity.asp',
         valueNote: (industry) => {
-            return `Industry average is ${industryAverage[industry].roe} `
+            return industryAverage[industry] && `Industry average is ${industryAverage[industry].roe} `
         },
         format: (cell, fieldValue, industry) => {
-            formatIndustryUpTrend(cell, fieldValue, industryAverage[industry].roe)
+            formatIndustryUpTrend(cell, fieldValue, industryAverage[industry] && industryAverage[industry].roe)
         }
     },
     "gross profit": {
@@ -65,7 +75,7 @@ module.exports = {
             return `Industry average is ${industryAverage[industry] && industryAverage[industry]['debt/equity']}`
         },
         format: (cell, fieldValue, industry) => {
-            formatIndustryDownTrend(cell, fieldValue, industryAverage[industry]['debt/equity']);
+            formatIndustryDownTrend(cell, fieldValue, industryAverage[industry] && industryAverage[industry]['debt/equity']);
         }
     },
     "Levered Free Cash Flow": {
@@ -99,5 +109,9 @@ module.exports = {
     'Zacks recommendation': {
         description: '(1=Buy, 5=Sell)'
     },
+    'beta': {},
+    'market cap': {},
+    'Total cash': {},
+    'Total debt': {},
 
 }

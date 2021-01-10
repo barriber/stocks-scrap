@@ -5,18 +5,35 @@ const puppeteer = require('puppeteer');
 const {modifySpreadsheet, initializeSpreadSheet} = require('./spreadsheet');
 const definition = require('./spreadSheetDefinition.js')
 const industryAverages = require('./industryAverages.json')
+const {parseMarketCap} = require("./utils");
+const {cashFlowScrap} = require("./balanceSheetScrap");
+const {parseMsarketCap} = require("./utils");
+const {dcf} = require("./stockAnalysis");
+const {incomeScrap} = require("./balanceSheetScrap");
+const {balanceScrap} = require("./balanceSheetScrap");
 const {formatIndustryUpTrend} = require("./utils");
 const {formatIndustryDownTrend} = require("./utils");
 const {industryScrap} = require("./indusrty");
 const fiveYears = 24 * 60 * 60 * 365 * 5;
 const regex = /\$stock/g;
-
+const YAHOO_URL = 'https://finance.yahoo.com/quote/$stock';
 const getStatisticValue = ($, tables, tableIndex, valueIndex, column) => {
     const rows = $(tables[tableIndex]).children();
     const row = $(rows[valueIndex]).children()
     return $(row[column || 1]).text();
 }
 
+
+const scrapBalacnceSheet = (balanceSheet, stockDefinition) => {
+    const $ = cheerio.load(balanceSheet);
+
+}
+const scrapIncomeStatement = (income, stockDefinition) => {
+    // const $ = cheerio.load(income);
+    // financialsParser(stockDefinition, $, 20, 'interestExpense', 'Interest Expense');
+    // financialsParser(stockDefinition, $, 7, 'preTaxIncome', 'Pretax Income');
+    // financialsParser(stockDefinition, $, 8, 'taxProvision', 'Tax Provision');
+}
 const scrapStatistics = (statistics, stockDefinition) => {
     const statisticsData = cheerio.load(statistics);
     const statisticsTables = statisticsData('tbody');
@@ -33,6 +50,11 @@ const scrapStatistics = (statistics, stockDefinition) => {
     stockDefinition['Debt/Equity'].value = getStatisticValue(statisticsData, statisticsTables, 8, 3);
     stockDefinition['price/book'].value = getStatisticValue(statisticsData, statisticsTables, 0, 6);
     stockDefinition['price/sales'].value = getStatisticValue(statisticsData, statisticsTables, 0, 5);
+    stockDefinition['market cap'].value = parseMarketCap(getStatisticValue(statisticsData, statisticsTables, 0, 0));
+    stockDefinition.sharesOutstanding = {value: parseMarketCap(getStatisticValue(statisticsData, statisticsTables, 2, 2))};
+    stockDefinition['Total cash'].value =  parseMarketCap(getStatisticValue(statisticsData, statisticsTables, 8, 0));
+    stockDefinition['Total debt'].value =  parseMarketCap(getStatisticValue(statisticsData, statisticsTables, 8, 2));
+    stockDefinition.beta.value =  getStatisticValue(statisticsData, statisticsTables, 1, 0);
     const market = statisticsData('#quote-header-info span').text().split(' - ')[0];
     stockDefinition.market = market === 'NasdaqGS' ? 'NASDAQ' : market.toUpperCase();
 }
@@ -40,13 +62,13 @@ const scrapStatistics = (statistics, stockDefinition) => {
 const scrapProfile = (profileData, stockDefinition) => {
     const $ = cheerio.load(profileData);
     const profile = $('.asset-profile-container p')[1];
-    const profileInfo = $('span',profile);
+    const profileInfo = $('span', profile);
     const sector = $(profileInfo[1]).text();
     let industry = $(profileInfo[3]).text()
     stockDefinition.sector.value = sector;
     industry = industry.replace('—', ' - ')
     stockDefinition.industry.value = industry;
-    if(industryAverages[industry]) {
+    if (industryAverages[industry]) {
         stockDefinition['industry pe'].value = industryAverages[industry].pe
     }
 }
@@ -57,6 +79,8 @@ const scrapAnalysis = (analysis, stockDefinition) => {
     stockDefinition['earnings current year'].value = getStatisticValue(analysisData, AnalysisTables, 0, 1, 3);
     stockDefinition["earnings next year"].value = getStatisticValue(analysisData, AnalysisTables, 0, 1, 4);
     stockDefinition['sales Growth current year'].value = getStatisticValue(analysisData, AnalysisTables, 1, 5, 3);
+    stockDefinition.revenueCurrentYear = {value: parseMarketCap(getStatisticValue(analysisData, AnalysisTables, 1, 1, 3))};
+    stockDefinition.revenueNextYear = {value: parseMarketCap(getStatisticValue(analysisData, AnalysisTables, 1, 1, 4))};
     stockDefinition['sales Growth next year'].value = getStatisticValue(analysisData, AnalysisTables, 1, 5, 4);
     stockDefinition['Growth Estimates current year'].value = getStatisticValue(analysisData, AnalysisTables, 5, 2, 1);
     stockDefinition['Growth Estimates next year'].value = getStatisticValue(analysisData, AnalysisTables, 5, 3, 1);
@@ -81,7 +105,7 @@ const zacksTableParser = ($, tableId) => {
     const tableRows = $(`#${tableId} tr`);
     const rows = [];
     tableRows.each((index, row) => {
-        if(index > 0) {
+        if (index > 0) {
             const rowObj = {}
             const columns = $(row).children();
             rowObj.title = $(columns[0]).text();
@@ -102,7 +126,7 @@ const zacksScrap = async (stock, stockDefinition) => {
         console.log('================', zacksData)
     } catch (e) {
         console.log('ZACKS FAILED')
-        console.log('xxxxx',JSON.stringify(e))
+        console.log('xxxxx', JSON.stringify(e))
     }
 
     console.log('ZACKS FETCH SUCCESSS')
@@ -111,7 +135,7 @@ const zacksScrap = async (stock, stockDefinition) => {
     const growthRatesTable = zacksTableParser($, 'growth_rates')
     const financialsTable = zacksTableParser($, 'financials')
 
-    if(zacksRecomendations.length > 0) {
+    if (zacksRecomendations.length > 0) {
         stockDefinition['Zacks recommendation'] = {
             value: zacksRecomendations[0].company,
             valueNote: () => `Industry Zacks recommendation: ${zacksRecomendations[0].industry}`
@@ -131,14 +155,14 @@ const zacksScrap = async (stock, stockDefinition) => {
         }
     }
 }
+
 const scrapCompetitors = async (stockDefinition, stock) => {
-    console.log('START ZACKS!!!')
     const competitorsUrl = `https://www.marketbeat.com/stocks/${stockDefinition.market}/${stock}/competitors-and-alternatives/`
-   const {data: competitorData} = await axios(competitorsUrl.replace(regex, stock))
+    const {data: competitorData} = await axios(competitorsUrl)
     const $ = cheerio.load(competitorData);
     const competitors = $('.ticker-area').slice(0, 5);
     const stocks = []
-    competitors.each((i, competitor ) => {
+    competitors.each((i, competitor) => {
         const stock = $(competitor).text();
         stocks.push(stock)
     })
@@ -148,21 +172,25 @@ const scrapCompetitors = async (stockDefinition, stock) => {
 const scrap = async (stock, stockDefinition) => {
     const timeNow = Math.round(new Date().getTime() / 1000);
     const fiveYearsAgo = timeNow - fiveYears;
-    const mainUrl = 'https://finance.yahoo.com/quote/$stock/profile?p=$stock'
-    const statisticsUrl = 'https://finance.yahoo.com/quote/$stock/key-statistics?p=$stock';
-    const analysisUrl = 'https://finance.yahoo.com/quote/$stock/analysis?p=$stock';
-    const dividendUrl = `https://finance.yahoo.com/quote/$stock/history?period1=${fiveYearsAgo}&period2=${timeNow}&interval=div%7Csplit&filter=div&frequency=1d`
-    console.log('START FETCHING');
-    const [{data: statistics}, {data: analysis}, {data: dividendData},
-        {data: profileData}] = await Promise.all(
-        [axios(statisticsUrl.replace(regex, stock)), axios(analysisUrl.replace(regex, stock)),
-            axios(dividendUrl.replace(regex, stock)), axios(mainUrl.replace(regex, stock))])
+    const parsedStock = stock.replace('.', '-');
+    const mainUrl = `${YAHOO_URL}/profile?p=$stock`
+    const statisticsUrl = `${YAHOO_URL}/key-statistics?p=$stock`;
+    const analysisUrl = `${YAHOO_URL}/analysis?p=$stock`;
+    const dividendUrl = `${YAHOO_URL}/history?period1=${fiveYearsAgo}&period2=${timeNow}&interval=div%7Csplit&filter=div&frequency=1d`
+    console.log('START YAHOO FETCHING');
+    const [{data: statistics}, {data: analysis}, {data: dividendData}, {data: profileData}] = await Promise.all(
+        [axios(statisticsUrl.replace(regex, parsedStock)), axios(analysisUrl.replace(regex, parsedStock)),
+            axios(dividendUrl.replace(regex, parsedStock)), axios(mainUrl.replace(regex, parsedStock)),
+        ]);
+    // scrapIncomeStatement(incomeData, stockDefinition);
+    // scrapBalacnceSheet(balanceSheetData, stockDefinition);
+    console.log('====END YAHOO FETCHING SUCCESS===')
     scrapStatistics(statistics, stockDefinition);
     scrapAnalysis(analysis, stockDefinition);
     scrapDividend(dividendData, stockDefinition);
     scrapProfile(profileData, stockDefinition);
-    // await zacksScrap(stock, stockDefinition);
-    await scrapCompetitors(stockDefinition, stock);
+    // await zacksScrap(parsedStock, stockDefinition);
+    await scrapCompetitors(stockDefinition, parsedStock);
     stockDefinition.symbol.value = stock;
 }
 
@@ -186,13 +214,16 @@ const getStockData = async (stock, browser) => {
     // const [, tipRanks] = await Promise.all([scrap(stock, stockDefinition), tipRankAnalysis(stock, browser)]);
     // stockDefinition.tipRanks.value = tipRanks;
     await scrap(stock, stockDefinition)
+    const [income, balance, cashFlow] = await Promise.all([incomeScrap(stock, browser), balanceScrap(stock, browser), cashFlowScrap(stock,browser)])
+    dcf(stockDefinition, income, balance, cashFlow )
     return stockDefinition;
 }
 
 exports.stocks = async (req, res) => {
     console.time('stocks');
-    const {stocks, spreadsheetId = '1AGra0hkxIFC5BMdeMDoGJBf4XmbNc0AfLXHQJH-LHVw'} = req.query;
+    const {stocks, spreadsheetId = '16ck3M8DDlrUCGJZ5kOY9VSVQ-YiIXSCXzo2CVT97G4Y'} = req.query;
     const browser = await puppeteer.launch()
+    // const browser = await puppeteer.launch({headless: false})
     console.log('stocks', stocks)
     const stocksDataPromise = stocks.split(',').map(stock => getStockData(stock, browser));
     const [sheetInit, ...stocksData] = await Promise.all([initializeSpreadSheet(spreadsheetId), ...stocksDataPromise])

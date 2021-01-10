@@ -25,8 +25,8 @@ const setValues = async (sheet, stock, rowIndex ) => {
             const cell = sheet.getCell(rowIndex - 1, headerIndex);
             if (field.formula) {
                 cell.formula = field.formula(values[0].value)
-            } else {
-                cell.value = field.value || 'N/A'
+            } else if(field.value) {
+                cell.value = field.value;
             }
 
             if (field.valueNote) {
@@ -61,7 +61,10 @@ const initializeSpreadSheet = async (spreadsheetId) => {
     });
     console.log('SPREADSHEET AUTH SUCCESS')
      await doc.loadInfo();
-    const sheet = doc.sheetsByIndex[0];
+    let sheet = doc.sheetsByTitle['Watchlist'];
+    if(!sheet) {
+        sheet = await doc.addSheet({title: 'Watchlist'})
+    }
 
     if(sheet.gridProperties.columnCount < 50) {
         await sheet.resize({rowCount: 100, columnCount: 50})
