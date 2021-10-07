@@ -6,10 +6,7 @@ const {modifySpreadsheet, initializeSpreadSheet} = require('./spreadsheet');
 const definition = require('./spreadSheetDefinition.js')
 const industryAverages = require('./industryAverages.json')
 const {parseMarketCap} = require("./utils");
-const {cashFlowScrap} = require("./balanceSheetScrap");
-const {parseMsarketCap} = require("./utils");
 const {dcf} = require("./stockAnalysis");
-const {incomeScrap} = require("./balanceSheetScrap");
 const {balanceScrap} = require("./balanceSheetScrap");
 const {formatIndustryUpTrend} = require("./utils");
 const {formatIndustryDownTrend} = require("./utils");
@@ -213,9 +210,15 @@ const getStockData = async (stock, browser) => {
     const stockDefinition = deepClone(definition);
     // const [, tipRanks] = await Promise.all([scrap(stock, stockDefinition), tipRankAnalysis(stock, browser)]);
     // stockDefinition.tipRanks.value = tipRanks;
-    await scrap(stock, stockDefinition)
-    const [income, balance, cashFlow] = await Promise.all([incomeScrap(stock, browser), balanceScrap(stock, browser), cashFlowScrap(stock,browser)])
-    dcf(stockDefinition, income, balance, cashFlow )
+    await scrap(stock, stockDefinition);
+    try {
+        const balanceSheet = await balanceScrap(stock)
+        //SHARE OUTSANDING!!!
+        dcf(stockDefinition, balanceSheet)
+    } catch (e) {
+        console.log('Stock analysis Failed')
+        console.log('Error', e);
+    }
     return stockDefinition;
 }
 
