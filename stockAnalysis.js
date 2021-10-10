@@ -3,14 +3,14 @@ const TREASURY_BOND_10Y = 0.01105;
 const PERPETUAL_GROWTH = 0.025;
 
 const getRevenuePredication = (income, stockDefinition) => {
-    const revenueArr = [...income.revenue, stockDefinition.revenueCurrentYear.value, stockDefinition.revenueNextYear.value];
+    const revenueArr = [...income.revenue, stockDefinition.revenueCurrentYear.value, stockDefinition.revenueNextYear.value].filter(val => !isNaN(val));
 
     let sumRevenueGrowth = 0
-    for (i = 0; i < 5; i++) {
+    for (i = 0; i < revenueArr.length - 1; i++) {
         sumRevenueGrowth += ((revenueArr[i + 1] - revenueArr[i]) / revenueArr[i]);
     }
 
-    const average = sumRevenueGrowth / 5;
+    const average = sumRevenueGrowth / revenueArr.length - 1;
     revenueArr.push(revenueArr[revenueArr.length - 1] * (1 + average));
     revenueArr.push(revenueArr[revenueArr.length - 1] * (1 + average));
 
@@ -20,8 +20,9 @@ const getRevenuePredication = (income, stockDefinition) => {
 // Weighted Average Cost of Capital
 const getWacc = (income, balance, stockDefinition) => {
     // https://www.youtube.com/watch?v=fd_emLLzJnk&t=944s
-    const effectiveTaxRate = 1 - (income.interestExpense / income.preTaxIncome);
-    const debtRate = income.interestExpense / balance.totalDebt;
+    const interestExpense = income.interestExpense || 0
+    const effectiveTaxRate = 1 - (interestExpense / income.preTaxIncome);
+    const debtRate = interestExpense / balance.totalDebt;
     const costOfDebt = effectiveTaxRate * debtRate;
     const beta = parseFloat(stockDefinition.beta.value);
     const costOfEquity = TREASURY_BOND_10Y + beta * (EXPECTED_RETURN_OF_MARKET - TREASURY_BOND_10Y)
@@ -45,10 +46,10 @@ const getProjectedIncomeAndCashFlow = (income, cashFlow, cashFlowRate, minIncome
 }
 const dcf = (stockDefinition, income, balance, cashFlow) => {
     const requiredReturn = getWacc(income, balance, stockDefinition)
-    const cashFlowByIncome = income.netIncome.map((income, index) => cashFlow.freeCashFlow[index] / income);
+    const cashFlowByIncome = income.netIncome.map((income, index) => cashFlow.freeCashFlow[index] / income).filter(x=> !isNaN(x));
     const cashFlowRate = Math.min(...cashFlowByIncome);
     const revenue = getRevenuePredication(income, stockDefinition);
-    const netIncomeMargins = income.netIncome.map((income, index) => income / revenue[index]);
+    const netIncomeMargins = income.netIncome.filter(x=> !isNaN(x)).map((income, index) => income / revenue[index]);
     const minIncomeMargin = Math.min(...netIncomeMargins);
     const {projectedIncome, projectedCashFlow} = getProjectedIncomeAndCashFlow(income.netIncome, cashFlow.freeCashFlow, cashFlowRate, minIncomeMargin)
     const terminalValue = ((projectedCashFlow[projectedCashFlow.length - 1]) * (1 + PERPETUAL_GROWTH)) / (requiredReturn - PERPETUAL_GROWTH);

@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 const deepClone = (aObject) => {
     if (!aObject) {
         return aObject;
@@ -13,6 +15,15 @@ const deepClone = (aObject) => {
     return bObject;
 }
 
+const getYahooApi = () => {
+    return axios.create({
+        baseURL: 'https://yh-finance.p.rapidapi.com/stock/v2',
+        headers: {
+            'x-rapidapi-host': 'yh-finance.p.rapidapi.com',
+            'x-rapidapi-key': '33212a2cedmsh5d14793715e5faep16ae3cjsn6f5fb8154a78'
+        }
+    });
+}
 const formatIndustryDownTrend = (cell, fieldValue, industry) => {
     const fieldFloat = typeof fieldValue === 'string' ? parseFloat(fieldValue.split('%')[0]): fieldValue
     const industryFloat =  typeof industry === 'string' ? parseFloat(industry.split('%')[0]) : industry
@@ -36,26 +47,9 @@ const formatIndustryUpTrend = (cell, fieldValue, industry) => {
     }
 }
 
-const parseStringNumber = (number) => {
-    return parseInt(number.split(',').join(''));
-}
-
-const parseMarketCap = (cap) => {
-    if(cap.includes('T')) {
-        const trillionCap = parseFloat(cap.split('T')[0]);
-        return trillionCap * 1000000000;
-    }else if(cap.includes('B')) {
-        const billionCap = parseFloat(cap.split('B')[0]);
-        return billionCap * 1000000;
-    } else if(cap.includes('M')) {
-        const millionCap = parseFloat(cap.split('M')[0]);
-        return millionCap * 1000;
-    }
-}
 module.exports = {
-    parseMarketCap,
+    getYahooApi,
     deepClone,
     formatIndustryDownTrend,
     formatIndustryUpTrend,
-    parseStringNumber
 }
