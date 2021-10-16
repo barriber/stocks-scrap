@@ -18,17 +18,17 @@ const getRevenuePredication = (income, stockDefinition) => {
 }
 
 // Weighted Average Cost of Capital
-const getWacc = (income, balance, stockDefinition) => {
+const getWacc = (stockData) => {
     // https://www.youtube.com/watch?v=fd_emLLzJnk&t=944s
-    const interestExpense = income.interestExpense || 0
-    const effectiveTaxRate = 1 - (interestExpense / income.preTaxIncome);
-    const debtRate = interestExpense / balance.totalDebt;
+    const interestExpense = Math.abs(stockData.interestExpense);
+    const debtRate = interestExpense / stockData.totalDebt;
+    const effectiveTaxRate = 1 - (interestExpense / stockData.preTaxIncome);
     const costOfDebt = effectiveTaxRate * debtRate;
-    const beta = parseFloat(stockDefinition.beta.value);
-    const costOfEquity = TREASURY_BOND_10Y + beta * (EXPECTED_RETURN_OF_MARKET - TREASURY_BOND_10Y)
-    const marketCap = stockDefinition['market cap'].value
-    const total = marketCap + balance.totalDebt;
-    const debtPercent = balance.totalDebt / total;
+    ////GET BOND RATE!!!!!!!!!!
+    const costOfEquity = TREASURY_BOND_10Y + stockData.beta * (EXPECTED_RETURN_OF_MARKET - TREASURY_BOND_10Y)
+    const marketCap = stockData.marketCap
+    const total = marketCap + stockData.totalDebt;
+    const debtPercent = stockData.totalDebt / total;
     const capPercent = marketCap / total
     return (debtPercent * costOfDebt) + (capPercent * costOfEquity);
 }
@@ -44,8 +44,8 @@ const getProjectedIncomeAndCashFlow = (income, cashFlow, cashFlowRate, minIncome
 
     return {projectedIncome, projectedCashFlow}
 }
-const dcf = (stockDefinition, income, balance, cashFlow) => {
-    const requiredReturn = getWacc(income, balance, stockDefinition)
+const dcf = (stockData) => {
+    const requiredReturn = getWacc(stockData)
     const cashFlowByIncome = income.netIncome.map((income, index) => cashFlow.freeCashFlow[index] / income).filter(x=> !isNaN(x));
     const cashFlowRate = Math.min(...cashFlowByIncome);
     const revenue = getRevenuePredication(income, stockDefinition);

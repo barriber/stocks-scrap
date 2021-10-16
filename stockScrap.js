@@ -10,14 +10,15 @@ const stockScrap = async (stock) => {
     const industry = summaryProfile.industry
 
     return {
+        exchangeName: price.exchangeName === 'NasdaqGS' ? 'NASDAQ' : price.exchangeName,
         forwardPE: defaultKeyStatistics.forwardPE.raw,
         beta: defaultKeyStatistics.beta.raw,
         peg: defaultKeyStatistics.pegRatio.raw,
         roe: financialData.returnOnEquity.raw,
         roa: financialData.returnOnAssets.raw,
-        profitMargins: defaultKeyStatistics.profitMargins.raw,
-        operatingMargins: financialData.operatingMargins.raw,
-        operatingCashflow: financialData.operatingCashflow.raw,
+        profitMargin: defaultKeyStatistics.profitMargins.raw,
+        operatingMargin: financialData.operatingMargins.raw,
+        operatingCashFlow: financialData.operatingCashflow.raw,
         currentRatio: financialData.currentRatio.raw,
         payoutRatio: summaryDetail.payoutRatio.raw,
         debtToEquity: financialData.debtToEquity.raw,
@@ -25,8 +26,7 @@ const stockScrap = async (stock) => {
         sharesOutstanding: defaultKeyStatistics.sharesOutstanding.raw,
         totalCash: financialData.totalCash.raw,
         totalDebt: financialData.totalDebt.raw,
-        beta: summaryDetail.beta.raw,
-        grossProfits: financialData.grossProfits.raw,
+        grossProfit: financialData.grossProfits.raw,
         industry,
         sector: summaryProfile.sector,
         industryPE: industryAverages[industry] && industryAverages[industry].pe,

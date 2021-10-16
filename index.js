@@ -1,4 +1,5 @@
 const axios = require('axios');
+const _ = require('lodash');
 const cheerio = require('cheerio');
 const {deepClone} = require('./utils');
 const puppeteer = require('puppeteer');
@@ -68,8 +69,9 @@ const zacksScrap = async (stock, stockDefinition) => {
     }
 }
 
-const scrapCompetitors = async (stockDefinition, stock) => {
-    const competitorsUrl = `https://www.marketbeat.com/stocks/${stockDefinition.market}/${stock}/competitors-and-alternatives/`
+const scrapCompetitors = async (stock, market) => {
+    const parsedStock = stock.replace('.', '-');
+    const competitorsUrl = `https://www.marketbeat.com/stocks/${market}/${parsedStock}/competitors-and-alternatives/`
     const {data: competitorData} = await axios(competitorsUrl)
     const $ = cheerio.load(competitorData);
     const competitors = $('.ticker-area').slice(0, 5);
@@ -79,41 +81,26 @@ const scrapCompetitors = async (stockDefinition, stock) => {
         stocks.push(stock)
     })
 
-    stockDefinition.competitors.value = stocks.join(', ')
-}
-const scrap = async (stock, stockDefinition) => {
-    const parsedStock = stock.replace('.', '-');
-
-    console.log('====END YAHOO FETCHING SUCCESS===')
-    // await zacksScrap(parsedStock, stockDefinition);
-    await scrapCompetitors(stockDefinition, parsedStock);
-    stockDefinition.symbol.value = stock;
+    return stocks.join(', ')
 }
 
-const tipRankAnalysis = async (stock, browser) => {
-    const tipRanks = 'https://www.tipranks.com/stocks/$stock/forecast'
-    const page = await browser.newPage();
-    await page.goto(tipRanks.replace(regex, stock));
-    const className = '.client-components-stock-research-analysts-price-target-style__actualMoney';
-    try {
-        await page.waitForSelector(className, {timeout: 5000});
-    } catch (e) {
-        return null;
-    }
-    const content = await page.content();
-    const $ = cheerio.load(content);
-    return $(className).children().text();
-}
-
-const getStockData = async (stock, browser) => {
+const getStockData = async (stock) => {
     const stockDefinition = deepClone(definition);
     const stockScraping = await Promise.all([stockScrap(stock), getAnalysis(stock), balanceScrap(stock)]);
     const stockData = stockScraping.reduce((acc, next) => {
         return {...acc, ...next}
     }, {})
-    await scrap(stock, stockDefinition);
+
+    stockData.competitors = await scrapCompetitors(stock, stockData.exchangeName);
+    Object.entries(stockDefinition).forEach(([key, value]) => {
+        if(stockData[key]) {
+            stockDefinition[key].value = stockData[key];
+        }
+    });
+
+
     try {
-        dcf(stockDefinition, balanceSheet)
+        dcf(stockData)
     } catch (e) {
         console.log('Stock analysis Failed')
         console.log('Error', e);
