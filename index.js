@@ -5,10 +5,8 @@ const {deepClone} = require('./utils');
 const puppeteer = require('puppeteer');
 const {modifySpreadsheet, initializeSpreadSheet} = require('./spreadsheet');
 const definition = require('./spreadSheetDefinition.js')
-const {getAnalysis} = require("./analysisScrap");
-const {stockScrap} = require("./stockScrap");
+const YahooApi = require("./yahooApi");
 const {dcf} = require("./stockAnalysis");
-const {balanceScrap} = require("./balanceSheetScrap");
 const {formatIndustryUpTrend} = require("./utils");
 const {formatIndustryDownTrend} = require("./utils");
 const {industryScrap} = require("./indusrty");
@@ -84,9 +82,10 @@ const scrapCompetitors = async (stock, market) => {
     return stocks.join(', ')
 }
 
-const getStockData = async (stock) => {
+const getStockData = async (stock, ) => {
+    const api = new YahooApi()
     const stockDefinition = deepClone(definition);
-    const stockScraping = await Promise.all([stockScrap(stock), getAnalysis(stock), balanceScrap(stock)]);
+    const stockScraping = await Promise.all([api.getStockSummary(stock), api.getStockAnalysis(stock), api.getStockFinance(stock)]);
     const stockData = stockScraping.reduce((acc, next) => {
         return {...acc, ...next}
     }, {})

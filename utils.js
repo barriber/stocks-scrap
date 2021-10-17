@@ -1,5 +1,3 @@
-const axios = require('axios');
-
 const deepClone = (aObject) => {
     if (!aObject) {
         return aObject;
@@ -15,15 +13,6 @@ const deepClone = (aObject) => {
     return bObject;
 }
 
-const getYahooApi = () => {
-    return axios.create({
-        baseURL: 'https://yh-finance.p.rapidapi.com/stock/v2',
-        headers: {
-            'x-rapidapi-host': 'yh-finance.p.rapidapi.com',
-            'x-rapidapi-key': '33212a2cedmsh5d14793715e5faep16ae3cjsn6f5fb8154a78'
-        }
-    });
-}
 const formatIndustryDownTrend = (cell, fieldValue, industry) => {
     const fieldFloat = typeof fieldValue === 'string' ? parseFloat(fieldValue.split('%')[0]): fieldValue
     const industryFloat =  typeof industry === 'string' ? parseFloat(industry.split('%')[0]) : industry
@@ -66,7 +55,6 @@ module.exports = {
     decimalFormat,
     formatPercent,
     bigNumberFormat,
-    getYahooApi,
     deepClone,
     formatIndustryDownTrend,
     formatIndustryUpTrend,
