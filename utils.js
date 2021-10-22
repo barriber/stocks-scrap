@@ -13,6 +13,10 @@ const deepClone = (aObject) => {
     return bObject;
 }
 
+const average = (arr) => {
+    return arr.reduce( ( p, c ) => p + c, 0 ) / arr.length;
+}
+
 const formatIndustryDownTrend = (cell, fieldValue, industry) => {
     const fieldFloat = typeof fieldValue === 'string' ? parseFloat(fieldValue.split('%')[0]): fieldValue
     const industryFloat =  typeof industry === 'string' ? parseFloat(industry.split('%')[0]) : industry
@@ -52,6 +56,7 @@ const decimalFormat = (cell, fieldValue) => {
 }
 
 module.exports = {
+    average,
     decimalFormat,
     formatPercent,
     bigNumberFormat,

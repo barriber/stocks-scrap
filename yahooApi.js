@@ -14,10 +14,12 @@ class YahooApi {
 
     async getStockSummary(stock) {
         const {data} = await this.apiInstance.get('get-summary', {params: {symbol: stock, region: 'US'}});
-
         const {defaultKeyStatistics, financialData, summaryDetail, price, summaryProfile} = data;
-        const industry = summaryProfile.industry
+        if (price.quoteType === 'INDEX') {
+            return {price: price.regularMarketPrice.raw}
+        }
 
+        const industry = summaryProfile.industry
         return {
             exchangeName: price.exchangeName === 'NasdaqGS' ? 'NASDAQ' : price.exchangeName,
             forwardPE: defaultKeyStatistics.forwardPE.raw,
@@ -60,7 +62,7 @@ class YahooApi {
         const netIncome = netIncomeHistory[netIncomeHistory.length - 1];
         const revenueHistory = incomeStatementHistory.map(({totalRevenue}) => totalRevenue.raw).reverse();
         const revenue = revenueHistory[revenueHistory.length - 1];
-        const freeCashFlow = cashflowStatements.map(({totalCashFromOperatingActivities, capitalExpenditures}) => {
+        const freeCashFlowHistory = cashflowStatements.map(({totalCashFromOperatingActivities, capitalExpenditures}) => {
             return totalCashFromOperatingActivities.raw + capitalExpenditures.raw
         }).reverse();
 
@@ -74,7 +76,7 @@ class YahooApi {
             interestExpense,
             preTaxIncome,
             revenue,
-            freeCashFlow
+            freeCashFlowHistory
         }
     }
 
@@ -82,7 +84,8 @@ class YahooApi {
         const {
             data: {
                 earningsTrend,
-                financialData
+                financialData,
+                ...rest
             }
         } = await this.apiInstance.get('get-analysis', {params: {symbol: stock, region: 'US'}});
         const earningEstimates = this.getEarningsAnalysis(earningsTrend);
@@ -103,6 +106,8 @@ class YahooApi {
             nextYearGrowth: nextYear.growth.raw,
             nextYearSalesGrowth: nextYear.earningsEstimate.growth.raw,
             nextFiveYearsGrowth: nextFiveYears.growth.raw,
+            revenueEstimateCurrentYear: currentYear.revenueEstimate.avg.raw,
+            revenueEstimateNextYear: nextYear.revenueEstimate.avg.raw
         }
     }
 }

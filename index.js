@@ -82,39 +82,45 @@ const scrapCompetitors = async (stock, market) => {
     return stocks.join(', ')
 }
 
-const getStockData = async (stock, ) => {
+const getStockData = async (stock, custom) => {
     const api = new YahooApi()
     const stockDefinition = deepClone(definition);
-    const stockScraping = await Promise.all([api.getStockSummary(stock), api.getStockAnalysis(stock), api.getStockFinance(stock)]);
+    const [tenYearsBond, ...stockScraping] = await Promise.all([api.getStockSummary('^TNX'),
+        api.getStockSummary(stock), api.getStockAnalysis(stock), api.getStockFinance(stock)]);
     const stockData = stockScraping.reduce((acc, next) => {
         return {...acc, ...next}
     }, {})
 
+    stockData.treasuryBondRate = tenYearsBond.price / 100
     stockData.competitors = await scrapCompetitors(stock, stockData.exchangeName);
+    // const stockData = test;
     Object.entries(stockDefinition).forEach(([key, value]) => {
-        if(stockData[key]) {
+        if (stockData[key]) {
             stockDefinition[key].value = stockData[key];
         }
     });
 
 
     try {
-        dcf(stockData)
+        dcf(stockData, custom)
     } catch (e) {
         console.log('Stock analysis Failed')
         console.log('Error', e);
     }
     return stockDefinition;
 }
-
+// incomeMargin requiredReturn RevenueGrow
 exports.stocks = async (req, res) => {
     console.time('stocks');
 
-    const {stocks, spreadsheetId = '16ck3M8DDlrUCGJZ5kOY9VSVQ-YiIXSCXzo2CVT97G4Y'} = req.query;
-    const browser = await puppeteer.launch()
+    const {stocks, cashFlowGrowth,spreadsheetId = '16ck3M8DDlrUCGJZ5kOY9VSVQ-YiIXSCXzo2CVT97G4Y'} = req.query;
+    const browser = await puppeteer.launch();
+    const custom = {
+        cashFlowGrowth: _.toNumber(cashFlowGrowth)
+    }
     // const browser = await puppeteer.launch({headless: false})
     console.log('stocks', stocks)
-    const stocksDataPromise = stocks.split(',').map(stock => getStockData(stock, browser));
+    const stocksDataPromise = stocks.split(',').map(stock => getStockData(stock, custom));
     const [sheetInit, ...stocksData] = await Promise.all([initializeSpreadSheet(spreadsheetId), ...stocksDataPromise])
     await browser.close();
     await modifySpreadsheet(stocksData, sheetInit);
