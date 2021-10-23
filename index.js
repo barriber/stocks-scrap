@@ -1,10 +1,7 @@
 const axios = require('axios');
 const _ = require('lodash');
 const cheerio = require('cheerio');
-const {deepClone} = require('./utils');
-const puppeteer = require('puppeteer');
 const {modifySpreadsheet, initializeSpreadSheet} = require('./spreadsheet');
-const definition = require('./spreadSheetDefinition.js')
 const YahooApi = require("./yahooApi");
 const {dcf} = require("./stockAnalysis");
 const {formatIndustryUpTrend} = require("./utils");
@@ -109,23 +106,12 @@ const getStockData = async (stock, custom) => {
     }
     return stockDefinition;
 }
-// incomeMargin requiredReturn RevenueGrow
+// requiredReturn RevenueGrow
 exports.stocks = async (req, res) => {
-    console.time('stocks');
-
-    const {stocks, cashFlowGrowth,spreadsheetId = '16ck3M8DDlrUCGJZ5kOY9VSVQ-YiIXSCXzo2CVT97G4Y'} = req.query;
-    const browser = await puppeteer.launch();
-    const custom = {
-        cashFlowGrowth: _.toNumber(cashFlowGrowth)
-    }
-    // const browser = await puppeteer.launch({headless: false})
-    console.log('stocks', stocks)
-    const stocksDataPromise = stocks.split(',').map(stock => getStockData(stock, custom));
-    const [sheetInit, ...stocksData] = await Promise.all([initializeSpreadSheet(spreadsheetId), ...stocksDataPromise])
-    await browser.close();
-    await modifySpreadsheet(stocksData, sheetInit);
-    console.timeEnd('stocks');
-    res.status(200).send('Done');
+    const {stock, spreadsheetId = '16ck3M8DDlrUCGJZ5kOY9VSVQ-YiIXSCXzo2CVT97G4Y', ...custom} = req.body
+    const [sheetInit, ...stocksData] = await Promise.all([initializeSpreadSheet(spreadsheetId), getStockData(stock, custom)])
+    await modifySpreadsheet(stocksData[0], sheetInit);
+    res.status(200).send(`Success stock ${stock}`);
     return;
 }
 

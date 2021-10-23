@@ -1,4 +1,5 @@
 const axios = require('axios');
+const _ = require('lodash');
 const industryAverages = require('./industryAverages.json')
 
 class YahooApi {
@@ -53,7 +54,7 @@ class YahooApi {
             incomeStatementHistory: {incomeStatementHistory},
             cashflowStatementHistory: {cashflowStatements}
         } = data;
-        const longTermDebt = timeSeries.annualLongTermDebt.map(({reportedValue}) => reportedValue.raw);
+        const longTermDebt = _.compact(timeSeries.annualLongTermDebt).map(({reportedValue}) => reportedValue.raw);
         const totalAssets = balanceSheetStatements[0].totalAssets.raw;
         const interestExpense = incomeStatementHistory[0].interestExpense.raw;
         const preTaxIncome = incomeStatementHistory[0].incomeBeforeTax.raw;

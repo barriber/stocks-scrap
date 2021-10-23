@@ -43,7 +43,9 @@ const formatIndustryUpTrend = (cell, fieldValue, industry) => {
 
 const formatPercent = (cell, fieldValue) => {
     cell.numberFormat = {type: 'PERCENT' };
-    cell.value = +fieldValue.toFixed(3);
+    if(fieldValue) {
+        cell.value = +fieldValue.toFixed(3);
+    }
 }
 
 const bigNumberFormat = (cell, fieldValue) => {
@@ -52,7 +54,6 @@ const bigNumberFormat = (cell, fieldValue) => {
 }
 const decimalFormat = (cell, fieldValue) => {
     cell.numberFormat = {type: 'NUMBER', pattern: '###.##'};
-    cell.value = fieldValue;
 }
 
 module.exports = {

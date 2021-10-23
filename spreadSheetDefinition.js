@@ -5,7 +5,9 @@ const {formatIndustryUpTrend, formatIndustryDownTrend, formatPercent} = require(
 
 module.exports = {
     symbol: {
-        formula: (stock) => `=HYPERLINK("https://finance.yahoo.com/quote/${stock}/", "${stock}")`
+        formula: (stock) => {
+            return `=HYPERLINK("https://finance.yahoo.com/quote/${stock}/", "${stock.toUpperCase()}")`;
+        }
     },
     sector: {},
     industry: {},
@@ -35,7 +37,7 @@ module.exports = {
     },
     priceToEarnings: {
         "formula": (stock) => `=GOOGLEFINANCE("${stock}","pe")`,
-        "valueNote": (industry) => {
+        valueNote: ({industry}) => {
             return `Industry average is ${industryAverage[industry] && industryAverage[industry].pe} `
         },
         title: "p/e"
@@ -55,7 +57,7 @@ module.exports = {
         description: 'Return on equity (ROE) is a measure of financial performance calculated by dividing net income by shareholders\' equity. Because shareholders\' equity is equal to a company’s assets minus its debt, ROE is considered the return on net assets. ROE is considered a measure of how effectively management is using a company’s assets to create profits.\n' +
             'ROE=EPS/BookValue\n' +
             'Average is 14% below 7% is bad \n https://www.investopedia.com/terms/r/returnonequity.asp',
-        valueNote: (industry) => {
+        valueNote: ({industry}) => {
             return industryAverage[industry] && `Industry average is ${industryAverage[industry].roe} `
         },
         format: (cell, fieldValue, industry) => {
@@ -67,14 +69,10 @@ module.exports = {
         description: "Gross profit is the profit a company makes after deducting the costs associated with making and selling its products, or the costs associated with providing its services. \n https://www.investopedia.com/terms/g/grossprofit.asp",
         format: bigNumberFormat
     },
-    operatingCashFlow: {
-        description: "The operating cash flow ratio is a measure of how well current liabilities are covered by the cash flows generated from a company\"s operations. The ratio can help gauge a company\"s liquidity in the short term.",
-        format: bigNumberFormat
-    },
     debtToEquity: {
         title: "Debt/Equity",
         description: "The debt-to-equity (D/E) ratio is calculated by dividing a company’s total liabilities by its shareholder equity.",
-        "valueNote": (industry) => {
+        valueNote: ({industry}) => {
             return `Industry average is ${industryAverage[industry] && industryAverage[industry]['debt/equity']}`
         },
         format: (cell, fieldValue, industry) => {
@@ -88,7 +86,6 @@ module.exports = {
     currentRatio: {
         description: "The current ratio is a liquidity ratio that measures a company\"s ability to pay short-term obligations or those due within one year. It tells investors and analysts how a company can maximize the current assets on its balance sheet to satisfy its current debt and other payables.\n assets/debt (UP)",
     },
-    dividend: {},
     payoutRatio: {
         description: "The dividend payout ratio is the ratio of the total amount of dividends paid out to shareholders relative to the net income of the company.",
         format: formatPercent,
@@ -111,4 +108,21 @@ module.exports = {
     totalDebt: {
         format: bigNumberFormat
     },
+    lastModified: {
+        format: (cell) => {
+            cell.value = new Date().toLocaleDateString();
+        }
+    },
+    divYield: {
+        formula: (symbol, stock) => {
+            return `=${stock.dividend}/GOOGLEFINANCE("${symbol}")`
+        },
+        format: formatPercent,
+    },
+    dcf: {
+        valueNote: ({custom}) => {
+            return Object.entries(custom).map(([key, value]) => `${key}: ${value}`).join('\n');
+        }
+    }
+
 }

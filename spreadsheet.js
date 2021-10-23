@@ -1,17 +1,15 @@
 const {GoogleSpreadsheet} = require('google-spreadsheet');
 const _ = require('lodash');
 const spreadSheetDef = require('./spreadSheetDefinition');
-const LAST_COLUMN = 'AZ'
+const {deepClone} = require("./utils");
+const LAST_COLUMN = 'AZ';
 
-const setHeader = async (sheet) => {
-    const headers = _.map(spreadSheetDef, (obj, key) => {
-        return obj.title ? obj.title : _.startCase(key);
-    });
-    const values = Object.values(spreadSheetDef);
-    await sheet.setHeaderRow(headers);
+const setHeader = async (sheet, difference) => {
+    const newHeader = [...sheet.headerValues, ...difference];
+    await sheet.setHeaderRow(newHeader);
     await sheet.loadCells(`A1:${LAST_COLUMN}1`); // loads a range of cells
-
-    values.forEach((field, index) => {
+    difference.forEach((field) => {
+        const index = newHeader.findIndex((header) => header === field);
         if (field.description && typeof field.description !== "function") {
             const cell = sheet.getCell(0, index);
             cell.note = field.description
@@ -19,42 +17,41 @@ const setHeader = async (sheet) => {
     })
 }
 
-const setValues = async (sheet, stock, rowIndex) => {
+const setValues = async (sheet, stock, rowIndex, stockData) => {
     await sheet.loadCells(`A${rowIndex}:${LAST_COLUMN}${rowIndex}`);
-    _.forEach(stock, (field, key) => {
+    _.forEach(stock, async (field, key) => {
         const title = field.title ? field.title : _.startCase(key)
         const headerIndex = sheet.headerValues.findIndex(val => val.toLowerCase() === title.toLowerCase());
         if (headerIndex > -1) {
             const cell = sheet.getCell(rowIndex - 1, headerIndex);
             if (field.formula) {
-                cell.formula = field.formula(stock.symbol.value)
+                cell.formula = field.formula(stock.symbol.value, stockData)
             } else if (field.value) {
                 cell.value = field.value;
             }
 
             if (field.valueNote) {
-                cell.note = field.valueNote(stock.industry.value)
+                cell.note = field.valueNote(stockData)
             }
 
-            field.format && field.format(cell, field.value, stock.industry.value);
+            field.format && field.format(cell, field.value, stock);
         } else {
-            console.log('title', title)
+            console.warn('MISSING COLUMN', title);
         }
     })
 }
 
-const modifySpreadsheet = async (stocks, {sheet, rows}) => {
+const modifySpreadsheet = async (stock, {sheet, rows}) => {
     //In order to know how many new lines needed
-    const stockPromises = stocks.reduce((acc, stock) => {
-        const stockRow = rows.find(row => row.symbol === stock.symbol.value);
-        const rowIndex = stockRow ? stockRow.rowNumber : rows.length + acc.newStocks + 2;
-        acc.result.push(setValues(sheet, stock, rowIndex))
-        if (!stockRow) {
-            acc.newStocks += 1;
+    const stockDefinition = deepClone(spreadSheetDef);
+    Object.entries(stockDefinition).forEach(([key, value]) => {
+        if (stock[key]) {
+            stockDefinition[key].value = stock[key];
         }
-        return acc;
-    }, {result: [], newStocks: 0})
-    await Promise.all(stockPromises.result)
+    });
+    const stockRow = rows.find(row => row.symbol.toLowerCase() === stockDefinition.symbol.value.toLowerCase());
+    const rowIndex = stockRow ? stockRow.rowNumber : rows.length + acc.newStocks + 2;
+    await setValues(sheet, stockDefinition, rowIndex, stock)
     await sheet.saveUpdatedCells();
 }
 
@@ -70,13 +67,19 @@ const initializeSpreadSheet = async (spreadsheetId) => {
     if (!sheet) {
         sheet = await doc.addSheet({title: 'Watchlist'})
     }
-
-    if (sheet.gridProperties.columnCount < 30) {
-        await sheet.resize({rowCount: 100, columnCount: 50})
-        await setHeader(sheet);
-    }
-
     const rows = await sheet.getRows();
+
+    if (sheet.gridProperties.columnCount < 50) {
+        await sheet.resize({rowCount: 100, columnCount: 50})
+    }
+    const headers = _.map(spreadSheetDef, (obj, key) => {
+        return obj.title ? obj.title : _.startCase(key);
+    });
+
+    const headersToUpdate = _.differenceBy(headers, sheet.headerValues, _.toLower);
+    if (headersToUpdate.length > 0) {
+        await setHeader(sheet, headersToUpdate);
+    }
     return {sheet, rows}
 
 }
