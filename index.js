@@ -9,6 +9,71 @@ const {formatIndustryDownTrend} = require("./utils");
 const {industryScrap} = require("./indusrty");
 const regex = /\$stock/g;
 
+const test = {
+    "exchangeName": "NASDAQ",
+    "forwardPE": 12.321266,
+    "beta": 0.592063,
+    "peg": 1.12,
+    "roe": 0.22193001,
+    "roa": 0.092650004,
+    "profitMargin": 0.23906,
+    "operatingMargin": 0.29331,
+    "operatingCashFlow": 32362999808,
+    "currentRatio": 1.988,
+    "payoutRatio": 0.30110002,
+    "debtToEquity": 41.556,
+    "marketCap": 220944220160,
+    "sharesOutstanding": 4056999936,
+    "totalCash": 24856999936,
+    "totalDebt": 35408998400,
+    "grossProfit": 43612000000,
+    "industry": "Semiconductors",
+    "sector": "Technology",
+    "industryPE": 27.8,
+    "dividend": 1.39,
+    "currentYearGrowth": -0.096,
+    "currentYearSalesGrowth": -0.096,
+    "nextYearGrowth": -0.077,
+    "nextYearSalesGrowth": -0.077,
+    "nextFiveYearsGrowth": 0.1,
+    "revenueEstimateCurrentYear": 73601100000,
+    "revenueEstimateNextYear": 73119400000,
+    "medianRecommendedPricePrice": 60,
+    "recommendationRating": 2.8,
+    "longTermDebt": [
+        25037000000,
+        25098000000,
+        25308000000,
+        33897000000
+    ],
+    "totalAssets": 153091000000,
+    "revenueHistory": [
+        62761000000,
+        70848000000,
+        71965000000,
+        77867000000
+    ],
+    "netIncomeHistory": [
+        9601000000,
+        21053000000,
+        21048000000,
+        20899000000
+    ],
+    "netIncome": 20899000000,
+    "taxProvision": 4179000000,
+    "interestExpense": -629000000,
+    "preTaxIncome": 25078000000,
+    "revenue": 77867000000,
+    "freeCashFlowHistory": [
+        10332000000,
+        14251000000,
+        16932000000,
+        20931000000
+    ],
+    "treasuryBondRate": 0.01576,
+    "competitors": "NVDA, AVGO, TXN, MU, ADI"
+}
+
 const zacksTableParser = ($, tableId) => {
     const tableRows = $(`#${tableId} tr`);
     const rows = [];
@@ -80,31 +145,26 @@ const scrapCompetitors = async (stock, market) => {
 }
 
 const getStockData = async (stock, custom) => {
-    const api = new YahooApi()
-    const stockDefinition = deepClone(definition);
-    const [tenYearsBond, ...stockScraping] = await Promise.all([api.getStockSummary('^TNX'),
-        api.getStockSummary(stock), api.getStockAnalysis(stock), api.getStockFinance(stock)]);
-    const stockData = stockScraping.reduce((acc, next) => {
-        return {...acc, ...next}
-    }, {})
-
-    stockData.treasuryBondRate = tenYearsBond.price / 100
-    stockData.competitors = await scrapCompetitors(stock, stockData.exchangeName);
-    // const stockData = test;
-    Object.entries(stockDefinition).forEach(([key, value]) => {
-        if (stockData[key]) {
-            stockDefinition[key].value = stockData[key];
-        }
-    });
-
-
     try {
-        dcf(stockData, custom)
+        // const api = new YahooApi()
+        // const [tenYearsBond, ...stockScraping] = await Promise.all([api.getStockSummary('^TNX'),
+        //     api.getStockSummary(stock), api.getStockAnalysis(stock), api.getStockFinance(stock)]);
+        // const stockData = stockScraping.reduce((acc, next) => {
+        //     return {...acc, ...next}
+        // }, {})
+        //
+        // stockData.treasuryBondRate = tenYearsBond.price / 100
+        // stockData.competitors = await scrapCompetitors(stock, stockData.exchangeName);
+        const stockData = test;
+        stockData.symbol = stock;
+        stockData.dcf = dcf(stockData, custom);
+        stockData.custom = custom;
+
+        return stockData;
     } catch (e) {
         console.log('Stock analysis Failed')
         console.log('Error', e);
     }
-    return stockDefinition;
 }
 // requiredReturn RevenueGrow
 exports.stocks = async (req, res) => {
