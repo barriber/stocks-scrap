@@ -1,12 +1,12 @@
 const cheerio = require('cheerio');
 const puppeteer = require('puppeteer');
 
-
 const industryUrl = 'https://www.iclub.com/investing/stock_watch_list_industry.asp'
 
 const getValue = (column, $) => {
     return $(column).text().trim();
 }
+
 const industryScrap = async () => {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
@@ -39,7 +39,6 @@ const industryScrap = async () => {
 
     console.log(result)
 }
-
 
 module.exports = {
     industryScrap
