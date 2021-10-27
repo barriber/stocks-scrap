@@ -10,9 +10,12 @@ const setHeader = async (sheet, difference) => {
     await sheet.loadCells(`A1:${LAST_COLUMN}1`); // loads a range of cells
     difference.forEach((field) => {
         const index = newHeader.findIndex((header) => header === field);
-        if (field.description && typeof field.description !== "function") {
+        const colDef = _.find(spreadSheetDef, (val, key) => {
+            return key === field || val.title?.toLowerCase() === field.toLowerCase()
+        })
+        if (colDef.description && typeof field.description !== "function") {
             const cell = sheet.getCell(0, index);
-            cell.note = field.description
+            cell.note = colDef.description
         }
     })
 }
@@ -34,7 +37,7 @@ const setValues = async (sheet, stock, rowIndex, stockData) => {
                 cell.note = field.valueNote(stockData)
             }
 
-            field.format && field.format(cell, field.value, stock);
+            field.format && field.format(cell, field.value, stockData);
         } else {
             console.warn('MISSING COLUMN', title);
         }
@@ -80,7 +83,7 @@ const initializeSpreadSheet = async (spreadsheetId) => {
     if (headersToUpdate.length > 0) {
         await setHeader(sheet, headersToUpdate);
     }
-    return {sheet, rows}
+    return { sheet, rows }
 
 }
 

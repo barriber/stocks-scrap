@@ -52,12 +52,16 @@ const bigNumberFormat = (cell, fieldValue) => {
     cell.numberFormat = {type: 'NUMBER', pattern: fieldValue > 10000000 ? '0.00,,,"B"' :  '0.00,,"M"'};
     cell.value = fieldValue;
 }
-const decimalFormat = (cell, fieldValue) => {
+const decimalFormat = (cell) => {
     cell.numberFormat = {type: 'NUMBER', pattern: '###.##'};
 }
 
+const goodBad = (cell, isGood) => {
+    cell.backgroundColor = { red: !isGood ? 1 : 0, green: isGood ? 1: 0, blue: 0, alpha: 1}
+}
 module.exports = {
     average,
+    goodBad,
     decimalFormat,
     formatPercent,
     bigNumberFormat,

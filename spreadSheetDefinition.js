@@ -1,7 +1,6 @@
 const industryAverage = require('./industryAverages.json');
-const {decimalFormat} = require("./utils");
-const {bigNumberFormat} = require("./utils");
-const {formatIndustryUpTrend, formatIndustryDownTrend, formatPercent} = require("./utils");
+const {dcf} = require("./stockAnalysis");
+const {formatIndustryUpTrend, formatIndustryDownTrend, formatPercent, goodBad, average, decimalFormat, bigNumberFormat} = require("./utils");
 
 module.exports = {
     symbol: {
@@ -36,7 +35,7 @@ module.exports = {
 
     },
     priceToEarnings: {
-        "formula": (stock) => `=GOOGLEFINANCE("${stock}","pe")`,
+        formula: (stock) => `=GOOGLEFINANCE("${stock}","pe")`,
         valueNote: ({industry}) => {
             return `Industry average is ${industryAverage[industry] && industryAverage[industry].pe} `
         },
@@ -122,7 +121,95 @@ module.exports = {
     dcf: {
         valueNote: ({custom}) => {
             return Object.entries(custom).map(([key, value]) => `${key}: ${value}`).join('\n');
+        },
+        format: (cell, fieldValue, stockData) => {
+            cell.value = dcf(stockData)
         }
+    },
+    pillarOne: {
+        description: 'Pillar no` 1: Market cap divided by 5 year average of earning less to be less then 22.5',
+       format: (cell, fieldValue, stockData) => {
+           const capByIncome = stockData.marketCap / average(stockData.netIncomeHistory)
+           const result = capByIncome < 22.5 ;
+           cell.note = `MCP/INCOME=${Math.round(capByIncome)}`
+           cell.value = result;
+           goodBad(cell, result )
+        },
+        title: 'MCP by PE average',
+    },
+    pillarThree: {
+        description: 'Pillar no`3: Revenue Growth',
+        format: (cell, fieldValue, {revenueHistory}) => {
+            const revenueAverage = average(revenueHistory);
+            const result = revenueHistory[0] < revenueAverage && revenueHistory[revenueHistory.length - 1] > revenueAverage;
+            cell.value = result;
+            cell.note = `Revenue history: ${revenueHistory.join('\n')}`
+            goodBad(cell, result);
+        },
+        title: 'Revenue Growth'
+    },
+    pillarFour: {
+        description: 'Pillar no`4: Income Growth',
+        format: (cell, fieldValue, {netIncomeHistory}) => {
+            const incomeAverage = average(netIncomeHistory);
+            const result = netIncomeHistory[0] < incomeAverage && netIncomeHistory[netIncomeHistory.length - 1] > incomeAverage;
+            cell.value = result;
+            cell.note = `Income history: ${netIncomeHistory.join('\n')}`
+            goodBad(cell, result);
+        },
+        title: 'Income Growth'
+    },
+    //TODO shareOut
+    // pillarFive: {
+    //     description: 'Pillar no`5: Share outstanging',
+    //     format: (cell, fieldValue, {netIncomeHistory}) => {
+    //         const incomeAverage = average(netIncomeHistory);
+    //         const result = netIncomeHistory[0] < incomeAverage && netIncomeHistory[netIncomeHistory.length - 1] > incomeAverage;
+    //         cell.value = result;
+    //         goodBad(cell, result);
+    //     },
+    //     title: 'ShareOutstangin Growth'
+    // },
+    pillarSix: {
+        description: 'Pillar no`6: Five times free cashFlow bigger then long term Debt',
+        format: (cell, fieldValue, {freeCashFlowHistory, longTermDebt}) => {
+            const freeCashAvg = average(freeCashFlowHistory);
+            const result = (freeCashAvg * 5) > longTermDebt[longTermDebt.length -1]
+            cell.value = result;
+            cell.note = `Long term debt: ${longTermDebt}\n Freecashflow avg: ${Math.round(freeCashAvg)}`
+            goodBad(cell, result);
+        },
+        title: 'Long debt by FCF'
+    },
+    pillarSeven: {
+        format: (cell, fieldValue, {freeCashFlowHistory}) => {
+            const freeCashFlowAvg = average(freeCashFlowHistory);
+            const result = freeCashFlowHistory[0] < freeCashFlowAvg && freeCashFlowHistory[freeCashFlowHistory.length - 1] > freeCashFlowAvg;
+            cell.value = result;
+            cell.note = `Free cash flow history: ${freeCashFlowHistory.join('\n')}`;
+            goodBad(cell, result);
+        },
+        title: 'FCF growth'
+    },
+    pillarEight: {
+        description: 'Pillar no`8: Free cash flow by 20 should be more than market cap',
+        format: (cell, fieldValue, {freeCashFlowHistory, marketCap}) => {
+            const freeCashFlowAvg = average(freeCashFlowHistory);
+            const result = freeCashFlowAvg * 20 > marketCap;
+            cell.value = result;
+            goodBad(cell, result);
+        },
+        title: 'FCF by MCP'
+    },
+    pillarNine: {
+        description: 'Pillar no`9: Total dividend should be less the market cap',
+        format: (cell, fieldValue, {dividend, freeCashFlowHistory, sharesOutstanding}) => {
+            const freeCashFlowAvg = average(freeCashFlowHistory);
+            const totalDividendPaid = dividend * sharesOutstanding;
+            cell.value = totalDividendPaid < freeCashFlowAvg;
+            goodBad(cell, totalDividendPaid < freeCashFlowAvg);
+        },
+        title: 'Dividend by FCF'
     }
 
 }

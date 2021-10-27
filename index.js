@@ -3,7 +3,6 @@ const _ = require('lodash');
 const cheerio = require('cheerio');
 const {modifySpreadsheet, initializeSpreadSheet} = require('./spreadsheet');
 const YahooApi = require("./yahooApi");
-const {dcf} = require("./stockAnalysis");
 const {formatIndustryUpTrend} = require("./utils");
 const {formatIndustryDownTrend} = require("./utils");
 const {industryScrap} = require("./indusrty");
@@ -157,7 +156,6 @@ const getStockData = async (stock, custom) => {
         // stockData.competitors = await scrapCompetitors(stock, stockData.exchangeName);
         const stockData = test;
         stockData.symbol = stock;
-        stockData.dcf = dcf(stockData, custom);
         stockData.custom = custom;
 
         return stockData;
