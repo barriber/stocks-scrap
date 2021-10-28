@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const cheerio = require('cheerio');
+const Redis = require('../Redis');
 const YahooApi = require("../yahooApi");
 // const regex = /\$stock/g;
 
@@ -71,7 +72,8 @@ const test = {
 class StockScrap {
     constructor(stock) {
         this.stock = stock;
-        this.api = new YahooApi()
+        this.api = new YahooApi();
+        this.redis = new Redis();
     }
 
     async getStockData(custom) {
@@ -84,9 +86,15 @@ class StockScrap {
             //
             // stockData.treasuryBondRate = tenYearsBond.price / 100;
             // stockData.competitors = await this.scrapCompetitors(stockData.exchangeName);
+            const cached = await this.redis.getValue(this.stock);
+            if(cached) {
+                return JSON.parse(cached);
+            }
+
             const stockData = test;
             stockData.symbol = this.stock;
             stockData.custom = custom;
+            this.redis.setValue(this.stock, JSON.stringify(stockData));
 
             return stockData;
         } catch (e) {

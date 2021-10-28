@@ -11,12 +11,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.20.0",
-    "cheerio": "^1.0.0-rc.3",
-    "google-spreadsheet": "^3.0.13",
+    "axios": "^0.24.0",
+    "cheerio": "^1.0.0-rc.10",
+    "google-spreadsheet": "^3.1.15",
+    "ioredis": "^4.28.0",
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "@google-cloud/functions-framework": "^1.7.1"
+    "@google-cloud/functions-framework": "^1.9.0"
   }
 }
