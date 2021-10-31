@@ -6,7 +6,7 @@ const stockAnalysisController = async (req)  => {
     const stockScrap = new StockScrap(stock);
     const spreadSheet = new Spreadsheet();
     const [stocksData] = await Promise.all([stockScrap.getStockData(custom),
-        spreadSheet.initializeSpreadSheet(spreadsheetId)])
+        spreadSheet.initializeSpreadSheet(spreadsheetId)]);
     await spreadSheet.modifySpreadsheet(stocksData);
 }
 

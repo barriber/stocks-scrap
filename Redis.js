@@ -10,14 +10,6 @@ class Redis {
             this.client = client;
         }
     }
-
-    async setValue(key, value) {
-        await this.client.set(key, value)
-    }
-
-    async getValue(key) {
-        return await this.client.get(key);
-    }
 }
 
 module.exports = Redis;

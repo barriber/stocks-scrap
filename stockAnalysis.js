@@ -24,7 +24,7 @@ const getRevenuePredication = (stockData) => {
         revenueArr.push(revenueArr[revenueArr.length - 1] * (1 + average));
         revenueArr.push(revenueArr[revenueArr.length - 1] * (1 + average));
     }
-    console.log('==REVENUE PROJECTED==', revenueArr)
+
     return revenueArr;
 }
 
@@ -49,7 +49,6 @@ const getIncomeMargin = (netIncomeHistory, projectedRevenue, customProfitMargin)
         return customProfitMargin;
     }
     const netIncomeMargins = netIncomeHistory.map((income, index) => income / projectedRevenue[index]);
-    console.log('==netIncomeMargins===', netIncomeMargins)
     const avg = average(netIncomeMargins);
     const minIncomeMargin = Math.min(...netIncomeMargins); //TODO custom netIncomeMar
     return avg / minIncomeMargin > 1.4 ? avg : minIncomeMargin;
@@ -65,7 +64,6 @@ const getProjectedIncomeAndCashFlow = (stockData, cashFlowRate, projectedRevenue
         projectedCashFlow.push(incomeProjected * cashFlowRate)
     })
 
-    console.log('====PROJECTED CASHFLOW===', projectedCashFlow)
     return {projectedCashFlow}
 }
 
@@ -77,7 +75,6 @@ const getCashFlowRate = (cashFlowByIncome) => {
 }
 const dcf = (stockData) => {
     const requiredReturn = stockData.custom.expectedGrowth || getWacc(stockData);
-    console.log('===REQUIRED RETURN===', requiredReturn)
     const cashFlowByIncome = stockData.netIncomeHistory.map((income, index) => stockData.freeCashFlowHistory[index] / income);
     const cashFlowRate = stockData.custom.cashFlowRate || getCashFlowRate(cashFlowByIncome);
     const projectedRevenue = getRevenuePredication(stockData);

@@ -39,6 +39,7 @@ class Spreadsheet {
     }
 
     async modifySpreadsheet(stock) {
+        console.log('start - modify spreadsheet')
         const rows = await this.sheet.getRows();
         const stockDefinition = deepClone(spreadSheetDef);
         Object.entries(stockDefinition).forEach(([key, value]) => {

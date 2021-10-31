@@ -3,7 +3,7 @@ const cheerio = require('cheerio');
 const Redis = require('../Redis');
 const YahooApi = require("../yahooApi");
 // const regex = /\$stock/g;
-
+const DAY_IN_SECONDS = 86400;
 const test = {
     "exchangeName": "NASDAQ",
     "forwardPE": 12.321266,
@@ -77,30 +77,44 @@ class StockScrap {
     }
 
     async getStockData(custom) {
+        console.log('start - scrapping stock')
         try {
-            // const [tenYearsBond, ...stockScraping] = await Promise.all([this.api.getStockSummary('^TNX'),
+            const cached = await this.redis.client.get(this.stock);
+            if(cached) {
+                return JSON.parse(cached);
+            }
+
+            // const stockScraping = await Promise.all([
             //     this.api.getStockSummary(this.stock), this.api.getStockAnalysis(this.stock), this.api.getStockFinance(this.stock)]);
             // const stockData = stockScraping.reduce((acc, next) => {
             //     return {...acc, ...next}
             // }, {})
             //
-            // stockData.treasuryBondRate = tenYearsBond.price / 100;
+            // stockData.treasuryBondRate = await this.getBondRate();
             // stockData.competitors = await this.scrapCompetitors(stockData.exchangeName);
-            const cached = await this.redis.getValue(this.stock);
-            if(cached) {
-                return JSON.parse(cached);
-            }
 
             const stockData = test;
             stockData.symbol = this.stock;
             stockData.custom = custom;
-            this.redis.setValue(this.stock, JSON.stringify(stockData));
+            this.redis.client.set(this.stock, JSON.stringify(stockData), 'ex', DAY_IN_SECONDS * 5);
 
             return stockData;
         } catch (e) {
             console.log('Stock analysis Failed')
             console.log('Error', e);
         }
+    }
+
+    async getBondRate() {
+        let bondRate = await this.redis.client.get('bondRate');
+        if(bondRate) {
+            return bondRate;
+        }
+
+        const tenYearsBond = await this.api.getStockSummary('^TNX');
+        bondRate = tenYearsBond.price / 100;
+        this.redis.client.set('bondRate', bondRate, 'ex', DAY_IN_SECONDS * 21);
+        return bondRate;
     }
 
     async scrapCompetitors(market) {
