@@ -23,6 +23,7 @@ class Spreadsheet {
             }
             cachedSheet = this.sheet;
         } else {
+            console.log('===Spreadsheet cashed===')
             this.sheet = cachedSheet;
         }
         if (this.sheet.gridProperties.columnCount < 50) {
