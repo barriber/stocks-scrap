@@ -38,7 +38,7 @@ const formatIndustryUpTrend = (cell, fieldValue, industry) => {
         cell.textFormat = {foregroundColor: {red: 1, green: 0, blue: 0}}
     }
     cell.numberFormat = {type: 'PERCENT' };
-    cell.value = +fieldValue.toFixed(3);
+    cell.value = fieldValue && +fieldValue.toFixed(3);
 }
 
 const formatPercent = (cell, fieldValue) => {

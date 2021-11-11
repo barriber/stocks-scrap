@@ -114,7 +114,7 @@ module.exports = {
     },
     divYield: {
         formula: (symbol, stock) => {
-            return `=${stock.dividend}/GOOGLEFINANCE("${symbol}")`
+            return `=${stock.dividend || 0}/GOOGLEFINANCE("${symbol}")`;
         },
         format: formatPercent,
     },
@@ -184,7 +184,7 @@ module.exports = {
     pillarSeven: {
         format: (cell, fieldValue, {freeCashFlowHistory}) => {
             const freeCashFlowAvg = average(freeCashFlowHistory);
-            const result = freeCashFlowHistory[0] < freeCashFlowAvg && freeCashFlowHistory[freeCashFlowHistory.length - 1] > freeCashFlowAvg;
+            const result = freeCashFlowHistory[freeCashFlowHistory.length - 1] > freeCashFlowAvg;
             cell.value = result;
             cell.note = `Free cash flow history: ${freeCashFlowHistory.join('\n')}`;
             goodBad(cell, result);
@@ -202,8 +202,13 @@ module.exports = {
         title: 'FCF by MCP'
     },
     pillarNine: {
-        description: 'Pillar no`9: Total dividend should be less the market cap',
+        description: 'Pillar no`9: Total dividend should be less then FCF',
         format: (cell, fieldValue, {dividend, freeCashFlowHistory, sharesOutstanding}) => {
+            if(!dividend) {
+                cell.value = 'N/A';
+                return
+            }
+
             const freeCashFlowAvg = average(freeCashFlowHistory);
             const totalDividendPaid = dividend * sharesOutstanding;
             cell.value = totalDividendPaid < freeCashFlowAvg;

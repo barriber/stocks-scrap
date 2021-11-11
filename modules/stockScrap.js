@@ -8,7 +8,7 @@ const DAY_IN_SECONDS = 86400;
 
 class StockScrap {
     constructor(stock) {
-        this.stock = stock;
+        this.stock = stock.toUpperCase();
         this.api = new YahooApi();
         this.redis = new Redis();
     }
@@ -18,7 +18,9 @@ class StockScrap {
         try {
             const cached = await this.redis.client.get(this.stock);
             if(cached) {
-                return JSON.parse(cached);
+                const stock = JSON.parse(cached);
+                stock.custom = custom;
+                return stock;
             }
 
             const [bondRate, ...stockScraping] = await Promise.all([this.getBondRate(),
@@ -26,9 +28,15 @@ class StockScrap {
             const stockData = stockScraping.reduce((acc, next) => {
                 return {...acc, ...next}
             }, {})
-
+            console.log('YAHOO API SUCCESS!')
             stockData.treasuryBondRate = bondRate ;
-            stockData.competitors = await this.scrapCompetitors(stockData.exchangeName);
+            try {
+                stockData.competitors = await this.scrapCompetitors(stockData.exchangeName);
+            } catch (e) {
+                console.log('===competitors FAIL===')
+                console.log(e)
+            }
+
             stockData.symbol = this.stock;
             stockData.custom = custom;
             this.redis.client.set(this.stock, JSON.stringify(stockData), 'ex', DAY_IN_SECONDS * 21);
