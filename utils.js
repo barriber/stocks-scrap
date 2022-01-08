@@ -1,3 +1,4 @@
+const _ = require('lodash');
 const deepClone = (aObject) => {
     if (!aObject) {
         return aObject;
@@ -56,11 +57,18 @@ const decimalFormat = (cell) => {
     cell.numberFormat = {type: 'NUMBER', pattern: '###.##'};
 }
 
+const pairsDifference = (arr) => {
+    return _.range(arr.length - 1).map((index) => {
+        return ((arr[index + 1] - arr[index]) / arr[index]);
+    });
+}
+
 const goodBad = (cell, isGood) => {
-    cell.backgroundColor = { red: !isGood ? 1 : 0, green: isGood ? 1: 0, blue: 0, alpha: 1}
+    cell.backgroundColor = { red: isGood ? 0 : 1, green: isGood ? 1: 0, blue: 0, alpha: 1}
 }
 module.exports = {
     average,
+    pairsDifference,
     goodBad,
     decimalFormat,
     formatPercent,

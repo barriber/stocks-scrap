@@ -28,15 +28,9 @@ class StockScrap {
             const stockData = stockScraping.reduce((acc, next) => {
                 return {...acc, ...next}
             }, {})
-            console.log('YAHOO API SUCCESS!')
-            stockData.treasuryBondRate = bondRate ;
-            try {
-                stockData.competitors = await this.scrapCompetitors(stockData.exchangeName);
-            } catch (e) {
-                console.log('===competitors FAIL===')
-                console.log(e)
-            }
 
+            stockData.treasuryBondRate = bondRate ;
+            stockData.competitors = await this.scrapCompetitors(stockData.exchangeName);
             stockData.symbol = this.stock;
             stockData.custom = custom;
             this.redis.client.set(this.stock, JSON.stringify(stockData), 'ex', DAY_IN_SECONDS * 21);

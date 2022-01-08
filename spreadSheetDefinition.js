@@ -1,7 +1,13 @@
+const _ = require('lodash');
 const industryAverage = require('./industryAverages.json');
 const {dcf} = require("./stockAnalysis");
-const {formatIndustryUpTrend, formatIndustryDownTrend, formatPercent, goodBad, average, decimalFormat, bigNumberFormat} = require("./utils");
+const {pairsDifference, formatIndustryUpTrend, formatIndustryDownTrend, formatPercent, goodBad, average, decimalFormat, bigNumberFormat} = require("./utils");
 
+const historyNote = (historyArray, type) => {
+    const growthDiff = pairsDifference(historyArray);
+    return `Growth diff:\n${growthDiff.map(v => `${_.round(v * 100, 2)}%`).join(', ')}\n` +
+            `${type} history:\n${historyArray.map(num => num.toLocaleString()).join('\n')}`;
+}
 module.exports = {
     symbol: {
         formula: (stock) => {
@@ -139,11 +145,11 @@ module.exports = {
     },
     pillarThree: {
         description: 'Pillar no`3: Revenue Growth',
-        format: (cell, fieldValue, {revenueHistory}) => {
+        format: (cell, fieldValue, { revenueHistory }) => {
             const revenueAverage = average(revenueHistory);
             const result = revenueHistory[0] < revenueAverage && revenueHistory[revenueHistory.length - 1] > revenueAverage;
             cell.value = result;
-            cell.note = `Revenue history: ${revenueHistory.join('\n')}`
+            cell.note = historyNote(revenueHistory, 'Revenue')
             goodBad(cell, result);
         },
         title: 'Revenue Growth'
@@ -154,7 +160,7 @@ module.exports = {
             const incomeAverage = average(netIncomeHistory);
             const result = netIncomeHistory[0] < incomeAverage && netIncomeHistory[netIncomeHistory.length - 1] > incomeAverage;
             cell.value = result;
-            cell.note = `Income history: ${netIncomeHistory.join('\n')}`
+            cell.note = cell.note = historyNote(netIncomeHistory, 'Income')
             goodBad(cell, result);
         },
         title: 'Income Growth'
@@ -176,7 +182,7 @@ module.exports = {
             const freeCashAvg = average(freeCashFlowHistory);
             const result = (freeCashAvg * 5) > longTermDebt[longTermDebt.length -1]
             cell.value = result;
-            cell.note = `Long term debt: ${longTermDebt}\n Freecashflow avg: ${Math.round(freeCashAvg)}`
+            cell.note = `Long term debt:\n${longTermDebt.map(num => num.toLocaleString()).join('\n')}\nFreecashflow avg: ${Math.round(freeCashAvg).toLocaleString()}`
             goodBad(cell, result);
         },
         title: 'Long debt by FCF'
@@ -186,7 +192,7 @@ module.exports = {
             const freeCashFlowAvg = average(freeCashFlowHistory);
             const result = freeCashFlowHistory[freeCashFlowHistory.length - 1] > freeCashFlowAvg;
             cell.value = result;
-            cell.note = `Free cash flow history: ${freeCashFlowHistory.join('\n')}`;
+            cell.note = historyNote(freeCashFlowHistory, 'Free cash flow')
             goodBad(cell, result);
         },
         title: 'FCF growth'
@@ -215,6 +221,6 @@ module.exports = {
             goodBad(cell, totalDividendPaid < freeCashFlowAvg);
         },
         title: 'Dividend by FCF'
-    }
+    },
 
 }

@@ -64,7 +64,7 @@ class YahooApi {
         const revenueHistory = incomeStatementHistory.map(({totalRevenue}) => totalRevenue.raw).reverse();
         const revenue = revenueHistory[revenueHistory.length - 1];
         const freeCashFlowHistory = cashflowStatements.map(({totalCashFromOperatingActivities, capitalExpenditures}) => {
-            return totalCashFromOperatingActivities.raw + capitalExpenditures.raw
+            return totalCashFromOperatingActivities.raw + (capitalExpenditures?.raw || 0)
         }).reverse();
 
         return {
