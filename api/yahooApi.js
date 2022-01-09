@@ -1,6 +1,6 @@
 const axios = require('axios');
 const _ = require('lodash');
-const industryAverages = require('./industryAverages.json')
+const industryAverages = require('../industryAverages.json')
 
 class YahooApi {
     constructor() {
@@ -47,7 +47,8 @@ class YahooApi {
     }
 
     async getStockFinance(stock) {
-        const {data} = await this.apiInstance.get('get-balance-sheet', {params: {symbol: stock, region: 'US'}});
+        const { data } = await this.apiInstance.get('get-balance-sheet', {params: {symbol: stock, region: 'US'}});
+
         const {
             timeSeries,
             balanceSheetHistory: {balanceSheetStatements},

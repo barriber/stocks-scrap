@@ -135,9 +135,19 @@ module.exports = {
     pillarOne: {
         description: 'Pillar no` 1: Market cap divided by 5 year average of earning less to be less then 22.5',
        format: (cell, fieldValue, stockData) => {
+            const avgIncome = average(stockData.netIncomeHistory);
+            if(avgIncome < 0) {
+                cell.value = false;
+                const latest = stockData.marketCap / _.last(stockData.netIncomeHistory);
+                cell.note = `Negative Income ${avgIncome} \n`;
+                goodBad(cell, false ) ;
+                return
+            }
+
            const capByIncome = stockData.marketCap / average(stockData.netIncomeHistory)
            const result = capByIncome < 22.5 ;
-           cell.note = `MCP/INCOME=${Math.round(capByIncome)}`
+           cell.note = `Expected: 22.5\nMCP/INCOME=${Math.round(capByIncome)}\n`+
+               `Latest: ${stockData.marketCap / _.last(stockData.netIncomeHistory)}`
            cell.value = result;
            goodBad(cell, result )
         },
@@ -160,29 +170,31 @@ module.exports = {
             const incomeAverage = average(netIncomeHistory);
             const result = netIncomeHistory[0] < incomeAverage && netIncomeHistory[netIncomeHistory.length - 1] > incomeAverage;
             cell.value = result;
-            cell.note = cell.note = historyNote(netIncomeHistory, 'Income')
+            cell.note = historyNote(netIncomeHistory, 'Income')
             goodBad(cell, result);
         },
         title: 'Income Growth'
     },
-    //TODO shareOut
-    // pillarFive: {
-    //     description: 'Pillar no`5: Share outstanging',
-    //     format: (cell, fieldValue, {netIncomeHistory}) => {
-    //         const incomeAverage = average(netIncomeHistory);
-    //         const result = netIncomeHistory[0] < incomeAverage && netIncomeHistory[netIncomeHistory.length - 1] > incomeAverage;
-    //         cell.value = result;
-    //         goodBad(cell, result);
-    //     },
-    //     title: 'ShareOutstangin Growth'
-    // },
+    pillarFive: {
+        description: 'Pillar no`5: Share Outstanding',
+        format: (cell, fieldValue, { commonStockSharesOutstandingHistory: sharesHistory }) => {
+            const sharesAvg = average(sharesHistory);
+            const result = !(sharesHistory[0] < sharesAvg && _.last(sharesHistory) > sharesAvg);
+            cell.value = result;
+            cell.note = historyNote(sharesHistory, 'Income')
+            goodBad(cell, result);
+        },
+        title: 'Share Growth'
+    },
     pillarSix: {
         description: 'Pillar no`6: Five times free cashFlow bigger then long term Debt',
         format: (cell, fieldValue, {freeCashFlowHistory, longTermDebt}) => {
             const freeCashAvg = average(freeCashFlowHistory);
-            const result = (freeCashAvg * 5) > longTermDebt[longTermDebt.length -1]
+            const result = (freeCashAvg * 5) > _.last(longTermDebt);
             cell.value = result;
-            cell.note = `Long term debt:\n${longTermDebt.map(num => num.toLocaleString()).join('\n')}\nFreecashflow avg: ${Math.round(freeCashAvg).toLocaleString()}`
+            cell.note = `Long term debt:\n${longTermDebt.map(num => num.toLocaleString()).join('\n')}`
+                + `\nExpectedRatio: 5\nRatio: ${Math.round(_.last(longTermDebt) / freeCashAvg )}\n` +
+                `Latest ratio: ${Math.round( _.last(longTermDebt) / _.last(freeCashFlowHistory))}`
             goodBad(cell, result);
         },
         title: 'Long debt by FCF'
@@ -203,6 +215,9 @@ module.exports = {
             const freeCashFlowAvg = average(freeCashFlowHistory);
             const result = freeCashFlowAvg * 20 > marketCap;
             cell.value = result;
+            cell.note = `Average FCF: ${freeCashFlowAvg.toLocaleString()}\nLatest FCF: ${_.last(freeCashFlowHistory).toLocaleString()}`
+                +`\nExpected: 20\nRatio is ${Math.round(marketCap / freeCashFlowAvg)}\n`
+                +`Latest Ratio: ${Math.round(marketCap / _.last(freeCashFlowHistory))}`
             goodBad(cell, result);
         },
         title: 'FCF by MCP'

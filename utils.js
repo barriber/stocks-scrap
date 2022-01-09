@@ -59,7 +59,10 @@ const decimalFormat = (cell) => {
 
 const pairsDifference = (arr) => {
     return _.range(arr.length - 1).map((index) => {
-        return ((arr[index + 1] - arr[index]) / arr[index]);
+        const difference = arr[index] - arr[index + 1];
+        const multiple = arr[index + 1] > arr[index] && arr[index + 1] > 0  ? 1 : -1;
+
+        return (Math.abs(difference / arr[index])) * multiple;
     });
 }
 

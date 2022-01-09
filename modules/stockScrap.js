@@ -2,7 +2,8 @@ const _ = require('lodash');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const Redis = require('../Redis');
-const YahooApi = require("../yahooApi");
+const YahooApi = require("../api/yahooApi");
+const AlphaVantage = require("../api/alphavantageApi");
 // const regex = /\$stock/g;
 const DAY_IN_SECONDS = 86400;
 
@@ -10,6 +11,7 @@ class StockScrap {
     constructor(stock) {
         this.stock = stock.toUpperCase();
         this.api = new YahooApi();
+        this.alphaApi =  new AlphaVantage();
         this.redis = new Redis();
     }
 
@@ -24,7 +26,8 @@ class StockScrap {
             }
 
             const [bondRate, ...stockScraping] = await Promise.all([this.getBondRate(),
-                this.api.getStockSummary(this.stock), this.api.getStockAnalysis(this.stock), this.api.getStockFinance(this.stock)]);
+                this.api.getStockSummary(this.stock), this.api.getStockAnalysis(this.stock), this.api.getStockFinance(this.stock),
+                this.alphaApi.getBalanceSheet(this.stock), this.alphaApi.getFreeCashFlow(this.stock)]);
             const stockData = stockScraping.reduce((acc, next) => {
                 return {...acc, ...next}
             }, {})
@@ -33,7 +36,7 @@ class StockScrap {
             stockData.competitors = await this.scrapCompetitors(stockData.exchangeName);
             stockData.symbol = this.stock;
             stockData.custom = custom;
-            this.redis.client.set(this.stock, JSON.stringify(stockData), 'ex', DAY_IN_SECONDS * 21);
+            this.redis.client.set(this.stock, JSON.stringify(stockData), 'ex', DAY_IN_SECONDS * 7);
 
             return stockData;
         } catch (e) {
