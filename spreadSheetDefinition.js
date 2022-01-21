@@ -132,6 +132,21 @@ module.exports = {
             cell.value = dcf(stockData)
         }
     },
+    cashFlowRate: {
+        format: (cell, fieldValue, { netIncomeHistory, freeCashFlowHistory }) => {
+            const cashFlowByIncome = netIncomeHistory.map((income, index) => {
+                return freeCashFlowHistory[index] / income
+            });
+
+            cell.note = historyNote(cashFlowByIncome, 'Free cash flow rate')
+            cell.value = _.round(_.last(cashFlowByIncome), 2);
+        }
+    },
+    report: {
+        formula: (stock) => {
+            return `=HYPERLINK("https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${stock}&type=10-K&dateb=&owner=exclude&count=10", "10K")`;
+        }
+    },
     pillarOne: {
         description: 'Pillar no` 1: Market cap divided by 5 year average of earning less to be less then 22.5',
        format: (cell, fieldValue, stockData) => {
@@ -233,6 +248,8 @@ module.exports = {
             const freeCashFlowAvg = average(freeCashFlowHistory);
             const totalDividendPaid = dividend * sharesOutstanding;
             cell.value = totalDividendPaid < freeCashFlowAvg;
+            cell.note = `Difference: ${_.round(totalDividendPaid / freeCashFlowAvg, 2)}\n`+
+                `Latest Diffrence: ${_.round(totalDividendPaid / _.last(freeCashFlowHistory), 2)}`;
             goodBad(cell, totalDividendPaid < freeCashFlowAvg);
         },
         title: 'Dividend by FCF'

@@ -14,7 +14,7 @@ class Spreadsheet {
                 client_email: process.env.client_email,
                 private_key: process.env.private_key.replace(/\\n/gm, '\n'),
             });
-            console.log('SPREADSHEET AUTH SUCCESS')
+
             await doc.loadInfo();
             this.sheet = doc.sheetsByTitle['Watchlist'];
             await this.sheet.getRows();
@@ -40,7 +40,6 @@ class Spreadsheet {
     }
 
     async modifySpreadsheet(stock) {
-        console.log('start - modify spreadsheet')
         const rows = await this.sheet.getRows();
         const stockDefinition = deepClone(spreadSheetDef);
         Object.entries(stockDefinition).forEach(([key, value]) => {

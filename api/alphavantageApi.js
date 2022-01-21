@@ -32,10 +32,25 @@ class AlphaVantage {
             return {}
         }
         const commonStockSharesOutstandingHistory = data.annualReports
-            .map(({commonStockSharesOutstanding}) =>  parseInt(commonStockSharesOutstanding)).reverse()
+            .map(({commonStockSharesOutstanding}) => parseInt(commonStockSharesOutstanding)).reverse()
 
         return {
             commonStockSharesOutstandingHistory
+        }
+    }
+
+    async getIncomeStatement(symbol) {
+        const { data } = await this.apiInstance.get('', {params: {symbol, function: 'INCOME_STATEMENT'}});
+        if(_.isEmpty(data)) {
+            return {}
+        }
+
+        const netIncomeHistory = data.annualReports.map(({ netIncome }) => parseInt(netIncome)).reverse();
+        const ebitdaHistory = data.annualReports.map(({ ebitda }) => parseInt(ebitda)).reverse();
+
+        return {
+            netIncomeHistory,
+            ebitdaHistory,
         }
     }
 
