@@ -6,7 +6,7 @@ const {pairsDifference, formatIndustryUpTrend, formatIndustryDownTrend, formatPe
 const historyNote = (historyArray, type) => {
     const growthDiff = pairsDifference(historyArray);
     return `Growth diff:\n${growthDiff.map(v => `${_.round(v * 100, 2)}%`).join(', ')}\n` +
-            `${type} history:\n${historyArray.map(num => num.toLocaleString()).join('\n')}`;
+            `${type} history:\n${historyArray.map(num => num && num.toLocaleString()).join('\n')}`;
 }
 module.exports = {
     symbol: {
@@ -56,7 +56,13 @@ module.exports = {
     },
     profitMargin: {
         description: "Profit margin is one of the commonly used profitability ratios to gauge the degree to which a company or a business activity makes money. It represents what percentage of sales has turned into profits. \n https://www.investopedia.com/terms/p/profitmargin.asp",
-        format: formatPercent,
+        format: (cell, fieldValue, { revenueHistory, netIncomeHistory, profitMargin, ...x  }) => {
+            const incomeMarginHistory = revenueHistory.map((revenue, index)=> netIncomeHistory[index] / revenue)
+            console.log(incomeMarginHistory);
+            formatPercent(cell, _.last(incomeMarginHistory));
+            const note = incomeMarginHistory.map(margin => `${_.round(margin * 100, 2)}%`).join('\n')
+            cell.note = note;
+        },
     },
     roe: {
         description: 'Return on equity (ROE) is a measure of financial performance calculated by dividing net income by shareholders\' equity. Because shareholders\' equity is equal to a company’s assets minus its debt, ROE is considered the return on net assets. ROE is considered a measure of how effectively management is using a company’s assets to create profits.\n' +
@@ -129,7 +135,7 @@ module.exports = {
             return Object.entries(custom).map(([key, value]) => `${key}: ${value}`).join('\n');
         },
         format: (cell, fieldValue, stockData) => {
-            cell.value = dcf(stockData)
+            cell.value = _.round(dcf(stockData), 2)
         }
     },
     cashFlowRate: {
@@ -254,5 +260,17 @@ module.exports = {
         },
         title: 'Dividend by FCF'
     },
+    PriceToFCF: {
+        formula: (symbol, { freeCashFlowHistory}) => {
+            return `=GOOGLEFINANCE("${symbol}", "marketcap")/${_.last(freeCashFlowHistory)}`;
+        },
+        title: 'P/FCF'
+    },
+    FCFYield: {
+        formula: (symbol, { freeCashFlowHistory}) => {
+            return `=${_.last(freeCashFlowHistory)}/GOOGLEFINANCE("${symbol}", "shares")`;
+        },
+        title: 'FCF YIELD'
+    }
 
 }

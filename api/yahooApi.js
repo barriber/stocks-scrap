@@ -55,7 +55,7 @@ class YahooApi {
             incomeStatementHistory: {incomeStatementHistory},
             cashflowStatementHistory: {cashflowStatements}
         } = data;
-        const longTermDebt = _.compact(timeSeries.annualLongTermDebt).map(({reportedValue}) => reportedValue.raw);
+        const longTermDebt = _.compact(timeSeries?.annualLongTermDebt)?.map(({reportedValue}) => reportedValue.raw);
         const totalAssets = balanceSheetStatements[0].totalAssets.raw;
         const interestExpense = incomeStatementHistory[0].interestExpense.raw;
         const preTaxIncome = incomeStatementHistory[0].incomeBeforeTax.raw;
@@ -65,7 +65,7 @@ class YahooApi {
         const revenueHistory = incomeStatementHistory.map(({totalRevenue}) => totalRevenue.raw).reverse();
         const revenue = revenueHistory[revenueHistory.length - 1];
         const freeCashFlowHistory = cashflowStatements.map(({totalCashFromOperatingActivities, capitalExpenditures}) => {
-            return totalCashFromOperatingActivities.raw + (capitalExpenditures?.raw || 0)
+            return (totalCashFromOperatingActivities?.raw || 0) + (capitalExpenditures?.raw || 0)
         }).reverse();
 
         return {

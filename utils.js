@@ -15,7 +15,7 @@ const deepClone = (aObject) => {
 }
 
 const average = (arr) => {
-    return arr.reduce( ( p, c ) => p + c, 0 ) / arr.length;
+    return arr?.reduce( ( p, c ) => p + c, 0 ) / arr?.length;
 }
 
 const formatIndustryDownTrend = (cell, fieldValue, industry) => {

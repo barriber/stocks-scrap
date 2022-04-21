@@ -47,10 +47,12 @@ class AlphaVantage {
 
         const netIncomeHistory = data.annualReports.map(({ netIncome }) => parseInt(netIncome)).reverse();
         const ebitdaHistory = data.annualReports.map(({ ebitda }) => parseInt(ebitda)).reverse();
+        const revenueHistory = data.annualReports.map(({ totalRevenue }) => parseInt(totalRevenue)).reverse();
 
         return {
             netIncomeHistory,
             ebitdaHistory,
+            revenueHistory
         }
     }
 
