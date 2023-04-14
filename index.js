@@ -1,6 +1,18 @@
 const {stockAnalysisController} = require("./controller");
 const {industryScrap} = require("./indusrty");
 
+
+// POST http://localhost:8080/stock
+//     Content-Type: application/json
+// {
+//     "stock": "amzn",
+//     "profitMargin": 0.06,
+//     "revenueGrowth": 1.09,
+//     "requiredReturn": 0.1,
+//     "shareGrowth": 1,
+//     "cashflowRate": 1.1
+// }
+
 exports.stocks = async (req, res) => {
     if(req.url === '/stock') {
         console.log(`starting scrapping ${req.body.stock}`)

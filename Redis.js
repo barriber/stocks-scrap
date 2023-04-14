@@ -4,7 +4,7 @@ let client;
 class Redis {
     constructor() {
         if(!client) {
-            client = new IoRedis('redis://:fa49927313d941a8a2885f9002be1b45@eu1-modern-quagga-33234.upstash.io:33234')
+            client = new IoRedis('redis://default:4d79b0912d5b4ff1b4ab1a5a3756e5fd@us1-secure-squid-37096.upstash.io:37096')
             this.client = client;
         } else {
             this.client = client;

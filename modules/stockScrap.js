@@ -26,7 +26,8 @@ class StockScrap {
 
             const [bondRate, ...stockScraping] = await Promise.all([this.getBondRate(),
                 this.api.getStockSummary(this.stock), this.api.getStockAnalysis(this.stock), this.api.getStockFinance(this.stock),
-                this.alphaApi.getBalanceSheet(this.stock), this.alphaApi.getFreeCashFlow(this.stock), this.alphaApi.getIncomeStatement(this.stock)]);
+                // this.alphaApi.getBalanceSheet(this.stock), this.alphaApi.getFreeCashFlow(this.stock), this.alphaApi.getIncomeStatement(this.stock)
+            ]);
             const stockData = stockScraping.reduce((acc, next) => {
                 return {...acc, ...next}
             }, {})
